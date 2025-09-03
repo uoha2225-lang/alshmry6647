@@ -84,6 +84,34 @@ const createReviewEmbed = (rating, reviewerUser, reviewId, reviewCount) => {
         });
 };
 
+// إنشاء embed تقييم مع النص الأصلي
+const createReviewEmbedWithText = (rating, reviewerUser, reviewId, reviewCount, originalText) => {
+    const stars = '⭐'.repeat(Math.max(1, Math.min(5, rating)));
+    const currentDate = new Date().toLocaleString('ar-SA', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+
+    return new EmbedBuilder()
+        .setTitle('شكرًا على التقييم!')
+        .addFields(
+            { name: 'رسالة التقييم:', value: originalText || 'تم', inline: false },
+            { name: 'التقييم:', value: stars, inline: false },
+            { name: 'رقم التقييم:', value: reviewId.toString(), inline: false },
+            { name: 'المقيم:', value: `<@${reviewerUser.id}>`, inline: false },
+            { name: 'تاريخ التقييم:', value: currentDate, inline: false }
+        )
+        .setColor(0x00AE86)
+        .setFooter({ 
+            text: 'جميع الحقوق محفوظة © NiFy', 
+            iconURL: 'https://cdn.discordapp.com/attachments/your-attachment-url/nify-logo.png' 
+        });
+};
+
 // إنشاء الأزرار
 const createTicketMainButton = () => {
     const row = new ActionRowBuilder()
@@ -159,17 +187,34 @@ const reviewCommands = [
         )
 ];
 
-// تسجيل slash commands للتذاكر
+// تسجيل slash commands للتذاكر (للعمل في جميع السيرفرات)
 async function registerTicketCommands() {
     try {
         if (tokens.REMINDER_BOT_TOKEN && ticketBot.user) {
             const rest = new REST({ version: '10' }).setToken(tokens.REMINDER_BOT_TOKEN);
             
             console.log('بدء تسجيل slash commands للتذاكر...');
+            
+            // تسجيل الأوامر عالمياً
             await rest.put(
                 Routes.applicationCommands(ticketBot.user.id),
                 { body: ticketCommands }
             );
+            
+            // تسجيل الأوامر لكل سيرفر موجود (لظهور فوري)
+            const guilds = ticketBot.guilds.cache;
+            for (const [guildId, guild] of guilds) {
+                try {
+                    await rest.put(
+                        Routes.applicationGuildCommands(ticketBot.user.id, guildId),
+                        { body: ticketCommands }
+                    );
+                    console.log(`✅ تم تسجيل slash commands للتذاكر في ${guild.name}`);
+                } catch (guildError) {
+                    console.error(`خطأ في تسجيل commands لسيرفر ${guild.name}:`, guildError.message);
+                }
+            }
+            
             console.log('✅ تم تسجيل slash commands للتذاكر بنجاح');
         }
     } catch (error) {
@@ -177,17 +222,34 @@ async function registerTicketCommands() {
     }
 }
 
-// تسجيل slash commands للتقييمات
+// تسجيل slash commands للتقييمات (للعمل في جميع السيرفرات)
 async function registerReviewCommands() {
     try {
         if (tokens.REVIEW_BOT_TOKEN && reviewBot.user) {
             const rest = new REST({ version: '10' }).setToken(tokens.REVIEW_BOT_TOKEN);
             
             console.log('بدء تسجيل slash commands للتقييمات...');
+            
+            // تسجيل الأوامر عالمياً
             await rest.put(
                 Routes.applicationCommands(reviewBot.user.id),
                 { body: reviewCommands }
             );
+            
+            // تسجيل الأوامر لكل سيرفر موجود (لظهور فوري)
+            const guilds = reviewBot.guilds.cache;
+            for (const [guildId, guild] of guilds) {
+                try {
+                    await rest.put(
+                        Routes.applicationGuildCommands(reviewBot.user.id, guildId),
+                        { body: reviewCommands }
+                    );
+                    console.log(`✅ تم تسجيل slash commands للتقييمات في ${guild.name}`);
+                } catch (guildError) {
+                    console.error(`خطأ في تسجيل commands لسيرفر ${guild.name}:`, guildError.message);
+                }
+            }
+            
             console.log('✅ تم تسجيل slash commands للتقييمات بنجاح');
         }
     } catch (error) {
@@ -337,35 +399,56 @@ reviewBot.on('interactionCreate', async (interaction) => {
     }
 });
 
-// للاحتفاظ بالطريقة القديمة للتقييم (كتابة رقم في الرسالة)
+// بوت التقييم يعمل في القنوات المخصصة فقط
 reviewBot.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     
-    // التحقق من وجود أرقام في الرسالة (تقييم من 1-5)
-    const ratingMatch = message.content.match(/^[1-5]$/);
-    if (!ratingMatch) return;
+    // التحقق إذا كانت القناة تحتوي على كلمة "تقييم" أو "review" في الاسم
+    const channelName = message.channel.name ? message.channel.name.toLowerCase() : '';
+    const isReviewChannel = channelName.includes('تقييم') || 
+                           channelName.includes('review') || 
+                           channelName.includes('rating') ||
+                           channelName.includes('feedback');
     
-    const rating = parseInt(ratingMatch[0]);
+    // أو إذا كانت الرسالة تحتوي على رقم من 1-5 فقط
+    const isRatingMessage = /^[1-5]$/.test(message.content.trim());
     
-    try {
-        // حذف الرسالة الأصلية
-        await message.delete().catch(() => {});
-        
-        // الحصول على إحصائيات التقييم للمستخدم
-        const userId = message.author.id;
-        let userStats = reviewBot.reviewStats.get(userId) || { count: 0, lastReviewId: 2000 };
-        userStats.count++;
-        userStats.lastReviewId++;
-        reviewBot.reviewStats.set(userId, userStats);
-        
-        // إنشاء embed التقييم
-        const reviewEmbed = createReviewEmbed(rating, message.author, userStats.lastReviewId, userStats.count);
-        
-        // إرسال التقييم
-        await message.channel.send({ embeds: [reviewEmbed] });
-        
-    } catch (error) {
-        console.error('خطأ في بوت التقييمات:', error);
+    if (isReviewChannel || isRatingMessage) {
+        try {
+            // حذف الرسالة الأصلية
+            await message.delete().catch(() => {});
+            
+            // استخراج التقييم
+            let rating;
+            const ratingMatch = message.content.match(/[1-5]/);
+            if (ratingMatch) {
+                rating = parseInt(ratingMatch[0]);
+            } else {
+                // إذا لم يكن هناك رقم محدد، أعطي تقييم حسب طول النص
+                const textLength = message.content.length;
+                if (textLength > 50) rating = 5;
+                else if (textLength > 30) rating = 4;
+                else if (textLength > 15) rating = 3;
+                else if (textLength > 5) rating = 2;
+                else rating = 1;
+            }
+            
+            // الحصول على إحصائيات التقييم للمستخدم
+            const userId = message.author.id;
+            let userStats = reviewBot.reviewStats.get(userId) || { count: 0, lastReviewId: 2000 };
+            userStats.count++;
+            userStats.lastReviewId++;
+            reviewBot.reviewStats.set(userId, userStats);
+            
+            // إنشاء embed التقييم مع النص الأصلي
+            const reviewEmbed = createReviewEmbedWithText(rating, message.author, userStats.lastReviewId, userStats.count, message.content);
+            
+            // إرسال التقييم
+            await message.channel.send({ embeds: [reviewEmbed] });
+            
+        } catch (error) {
+            console.error('خطأ في بوت التقييمات:', error);
+        }
     }
 });
 
