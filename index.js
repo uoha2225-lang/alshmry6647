@@ -1,4 +1,4 @@
-const { reminderBot, reviewBot } = require('./client');
+const { ticketBot, reviewBot } = require('./client');
 const tokens = require('./tokens');
 
 // دالة لبدء تشغيل البوتات
@@ -15,12 +15,12 @@ async function startBots() {
             console.warn('تحذير: لم يتم تعيين REVIEW_BOT_TOKEN');
         }
         
-        // تشغيل بوت التذكيرات
+        // تشغيل بوت التذاكر
         if (tokens.REMINDER_BOT_TOKEN) {
-            await reminderBot.login(tokens.REMINDER_BOT_TOKEN);
-            console.log('✅ تم تشغيل بوت التذكيرات بنجاح');
+            await ticketBot.login(tokens.REMINDER_BOT_TOKEN);
+            console.log('✅ تم تشغيل بوت التذاكر بنجاح');
         } else {
-            console.log('⚠️ تم تخطي بوت التذكيرات - لا يوجد توكن');
+            console.log('⚠️ تم تخطي بوت التذاكر - لا يوجد توكن');
         }
         
         // تشغيل بوت التقييمات
@@ -32,10 +32,10 @@ async function startBots() {
         }
         
         console.log('\n🚀 تم تشغيل جميع البوتات المتاحة!');
-        console.log('\n📝 أوامر بوت التذكيرات:');
-        console.log('   !تذكير [النص] - إنشاء تذكير عادي');
-        console.log('   !تذكير_صورة [رابط] [النص] - تذكير مع صورة');
-        console.log('   !اوامر_التذكير - عرض الأوامر');
+        console.log('\n🎫 أوامر بوت التذاكر:');
+        console.log('   !تذكرة - فتح نظام التذاكر مع الأزرار');
+        console.log('   !اوامر_التذاكر - عرض الأوامر');
+        console.log('   • الأزرار: للشراء | للاستفسار | لحل مشكلة');
         console.log('\n⭐ بوت التقييمات:');
         console.log('   يعمل تلقائياً عند كتابة رقم من 1-5 في أي رسالة');
         

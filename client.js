@@ -14,26 +14,44 @@ const createBotClient = (intents = []) => {
     });
 };
 
-// بوت التذكيرات
-const reminderBot = createBotClient();
-reminderBot.commands = new Collection();
+// بوت التذكيرات (Tickets)
+const ticketBot = createBotClient();
+ticketBot.commands = new Collection();
+ticketBot.activeTickets = new Collection(); // لحفظ التذاكر النشطة
 
 // بوت التقييمات
 const reviewBot = createBotClient();
 reviewBot.reviewStats = new Collection(); // لحفظ إحصائيات التقييمات
 
-// وظائف مساعدة للتذكيرات
-const createReminderEmbed = (title, description, imageUrl = null, color = 0x00AE86) => {
+// وظائف مساعدة للتذاكر
+const createTicketMainEmbed = () => {
+    return new EmbedBuilder()
+        .setTitle('أهتم    تذكرتك    واحضر    مايناسبك')
+        .setDescription('فتح تذكرة من هنا')
+        .setImage('https://i.imgur.com/qren-store-bg.png') // ستحتاج لرفع صورة Qren Store
+        .setColor(0x2F3136)
+        .setTimestamp();
+};
+
+const createTicketOptionsEmbed = () => {
+    return new EmbedBuilder()
+        .setTitle('فتح تذكرة من هنا')
+        .setColor(0x2F3136);
+};
+
+const createTicketEmbed = (ticketType, description, user) => {
     const embed = new EmbedBuilder()
-        .setTitle(title)
+        .setTitle(`🎫 تذكرة جديدة - ${ticketType}`)
         .setDescription(description)
-        .setColor(color)
+        .addFields(
+            { name: 'نوع التذكرة:', value: ticketType, inline: true },
+            { name: 'المستخدم:', value: `<@${user.id}>`, inline: true },
+            { name: 'التاريخ:', value: new Date().toLocaleString('ar-SA'), inline: true }
+        )
+        .setColor(0x00AE86)
+        .setImage('https://i.imgur.com/qren-store-logo.png') // صورة Qren Store كما طلبت
         .setTimestamp()
-        .setFooter({ text: 'بوت التذكيرات' });
-    
-    if (imageUrl) {
-        embed.setImage(imageUrl);
-    }
+        .setFooter({ text: 'نظام التذاكر' });
     
     return embed;
 };
@@ -66,12 +84,47 @@ const createReviewEmbed = (rating, reviewerUser, reviewId, reviewCount) => {
         });
 };
 
-// أوامر بوت التذكيرات
-reminderBot.on('ready', () => {
-    console.log(`بوت التذكيرات جاهز! مسجل باسم ${reminderBot.user.tag}`);
+// إنشاء الأزرار
+const createTicketMainButton = () => {
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('open_ticket_menu')
+                .setLabel('فتح تذكرة من هنا')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('🎫')
+        );
+    return row;
+};
+
+const createTicketOptionsButtons = () => {
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('ticket_buy')
+                .setLabel('للشراء')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('🛍️'),
+            new ButtonBuilder()
+                .setCustomId('ticket_inquiry')
+                .setLabel('للاستفسار')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('❓'),
+            new ButtonBuilder()
+                .setCustomId('ticket_problem')
+                .setLabel('لحل مشكلة')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('🔧')
+        );
+    return row;
+};
+
+// أوامر بوت التذاكر
+ticketBot.on('ready', () => {
+    console.log(`بوت التذاكر جاهز! مسجل باسم ${ticketBot.user.tag}`);
 });
 
-reminderBot.on('messageCreate', async (message) => {
+ticketBot.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     if (!message.content.startsWith(tokens.PREFIX)) return;
 
@@ -80,48 +133,98 @@ reminderBot.on('messageCreate', async (message) => {
 
     try {
         switch (command) {
-            case 'تذكير':
-                if (args.length < 1) {
-                    return message.reply('استخدم: `!تذكير [النص]` لإنشاء تذكير');
-                }
+            case 'تذكرة':
+            case 'ticket':
+                const mainEmbed = createTicketMainEmbed();
+                const mainButton = createTicketMainButton();
                 
-                const reminderText = args.join(' ');
-                const reminderEmbed = createReminderEmbed('🔔 تذكير', reminderText);
-                
-                await message.channel.send({ embeds: [reminderEmbed] });
+                await message.channel.send({ 
+                    embeds: [mainEmbed], 
+                    components: [mainButton] 
+                });
                 await message.delete().catch(() => {});
                 break;
 
-            case 'تذكير_صورة':
-                if (args.length < 2) {
-                    return message.reply('استخدم: `!تذكير_صورة [رابط الصورة] [النص]`');
-                }
-                
-                const imageUrl = args[0];
-                const reminderWithImageText = args.slice(1).join(' ');
-                const imageReminderEmbed = createReminderEmbed('🔔 تذكير مع صورة', reminderWithImageText, imageUrl);
-                
-                await message.channel.send({ embeds: [imageReminderEmbed] });
-                await message.delete().catch(() => {});
-                break;
-
-            case 'اوامر_التذكير':
-                const helpEmbed = createReminderEmbed(
-                    '📋 أوامر بوت التذكيرات',
-                    `**الأوامر المتاحة:**\n\n` +
-                    `\`!تذكير [النص]\` - إنشاء تذكير عادي\n` +
-                    `\`!تذكير_صورة [رابط] [النص]\` - تذكير مع صورة\n` +
-                    `\`!اوامر_التذكير\` - عرض هذه القائمة`,
-                    null,
-                    0x3498db
-                );
+            case 'اوامر_التذاكر':
+            case 'help':
+                const helpEmbed = new EmbedBuilder()
+                    .setTitle('📋 أوامر بوت التذاكر')
+                    .setDescription(
+                        `**الأوامر المتاحة:**\n\n` +
+                        `\`!تذكرة\` - فتح نظام التذاكر\n` +
+                        `\`!اوامر_التذاكر\` - عرض هذه القائمة`
+                    )
+                    .setColor(0x3498db);
                 
                 await message.channel.send({ embeds: [helpEmbed] });
                 break;
         }
     } catch (error) {
-        console.error('خطأ في بوت التذكيرات:', error);
+        console.error('خطأ في بوت التذاكر:', error);
         message.reply('حدث خطأ أثناء تنفيذ الأمر.');
+    }
+});
+
+// معالجة الأزرار
+ticketBot.on('interactionCreate', async (interaction) => {
+    if (!interaction.isButton()) return;
+
+    try {
+        switch (interaction.customId) {
+            case 'open_ticket_menu':
+                const optionsEmbed = createTicketOptionsEmbed();
+                const optionsButtons = createTicketOptionsButtons();
+                
+                await interaction.update({ 
+                    embeds: [optionsEmbed], 
+                    components: [optionsButtons] 
+                });
+                break;
+
+            case 'ticket_buy':
+                const buyEmbed = createTicketEmbed(
+                    'للشراء',
+                    'هذه التذكرة مخصصة لشراء المنتجات',
+                    interaction.user
+                );
+                
+                await interaction.reply({ 
+                    embeds: [buyEmbed], 
+                    ephemeral: false 
+                });
+                break;
+
+            case 'ticket_inquiry':
+                const inquiryEmbed = createTicketEmbed(
+                    'للاستفسار',
+                    'هذه التذكرة مخصصة للإجابة على استفساراتكم',
+                    interaction.user
+                );
+                
+                await interaction.reply({ 
+                    embeds: [inquiryEmbed], 
+                    ephemeral: false 
+                });
+                break;
+
+            case 'ticket_problem':
+                const problemEmbed = createTicketEmbed(
+                    'لحل مشكلة',
+                    'هذه التذكرة مخصصة في حال كان لديك مشكلة',
+                    interaction.user
+                );
+                
+                await interaction.reply({ 
+                    embeds: [problemEmbed], 
+                    ephemeral: false 
+                });
+                break;
+        }
+    } catch (error) {
+        console.error('خطأ في معالجة الأزرار:', error);
+        if (!interaction.replied) {
+            await interaction.reply({ content: 'حدث خطأ أثناء معالجة طلبك', ephemeral: true });
+        }
     }
 });
 
@@ -162,8 +265,10 @@ reviewBot.on('messageCreate', async (message) => {
 });
 
 module.exports = {
-    reminderBot,
+    ticketBot,
     reviewBot,
-    createReminderEmbed,
+    createTicketMainEmbed,
+    createTicketOptionsEmbed,
+    createTicketEmbed,
     createReviewEmbed
 };
