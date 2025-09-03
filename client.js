@@ -334,41 +334,101 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     break;
 
                 case 'ticket_buy':
+                    // إنشاء روم تذكرة جديد
+                    const buyChannel = await interaction.guild.channels.create({
+                        name: `شراء-منتج-${interaction.user.username}`,
+                        type: 0, // text channel
+                        parent: null, // يمكن تحديد category إذا أردت
+                        permissionOverwrites: [
+                            {
+                                id: interaction.guild.id,
+                                deny: ['ViewChannel'],
+                            },
+                            {
+                                id: interaction.user.id,
+                                allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'],
+                            },
+                        ],
+                    });
+                    
                     const buyEmbed = createTicketEmbed(
                         'شراء منتج',
                         'هذه التذكرة مخصصة لشراء المنتجات',
                         interaction.user
                     );
                     
+                    // إرسال رسالة في الروم الجديد
+                    await buyChannel.send({ embeds: [buyEmbed] });
+                    
                     await interaction.reply({ 
-                        embeds: [buyEmbed], 
-                        ephemeral: false 
+                        content: `تم إنشاء تذكرة شراء منتج في ${buyChannel}`, 
+                        ephemeral: true 
                     });
                     break;
 
                 case 'ticket_inquiry':
+                    // إنشاء روم تذكرة جديد
+                    const inquiryChannel = await interaction.guild.channels.create({
+                        name: `استفسار-${interaction.user.username}`,
+                        type: 0, // text channel
+                        parent: null, // يمكن تحديد category إذا أردت
+                        permissionOverwrites: [
+                            {
+                                id: interaction.guild.id,
+                                deny: ['ViewChannel'],
+                            },
+                            {
+                                id: interaction.user.id,
+                                allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'],
+                            },
+                        ],
+                    });
+                    
                     const inquiryEmbed = createTicketEmbed(
                         'استفسار',
                         'هذه التذكرة مخصصة للإجابة على استفساراتكم',
                         interaction.user
                     );
                     
+                    // إرسال رسالة في الروم الجديد
+                    await inquiryChannel.send({ embeds: [inquiryEmbed] });
+                    
                     await interaction.reply({ 
-                        embeds: [inquiryEmbed], 
-                        ephemeral: false 
+                        content: `تم إنشاء تذكرة استفسار في ${inquiryChannel}`, 
+                        ephemeral: true 
                     });
                     break;
 
                 case 'ticket_problem':
+                    // إنشاء روم تذكرة جديد
+                    const problemChannel = await interaction.guild.channels.create({
+                        name: `حل-مشكلة-${interaction.user.username}`,
+                        type: 0, // text channel
+                        parent: null, // يمكن تحديد category إذا أردت
+                        permissionOverwrites: [
+                            {
+                                id: interaction.guild.id,
+                                deny: ['ViewChannel'],
+                            },
+                            {
+                                id: interaction.user.id,
+                                allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'],
+                            },
+                        ],
+                    });
+                    
                     const problemEmbed = createTicketEmbed(
                         'لحل مشكلة',
                         'هذه التذكرة مخصصة في حال كان لديك مشكلة',
                         interaction.user
                     );
                     
+                    // إرسال رسالة في الروم الجديد
+                    await problemChannel.send({ embeds: [problemEmbed] });
+                    
                     await interaction.reply({ 
-                        embeds: [problemEmbed], 
-                        ephemeral: false 
+                        content: `تم إنشاء تذكرة حل مشكلة في ${problemChannel}`, 
+                        ephemeral: true 
                     });
                     break;
             }
