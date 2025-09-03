@@ -401,6 +401,11 @@ ticketBot.once('ready', async () => {
 
 // معالجة slash commands للتذاكر
 ticketBot.on('interactionCreate', async (interaction) => {
+    // تجنب معالجة نفس interaction مرتين
+    if (interaction.replied || interaction.deferred) {
+        return;
+    }
+    
     if (interaction.isChatInputCommand()) {
         const { commandName } = interaction;
 
@@ -437,7 +442,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
                         )
                         .setColor(0x3498db);
                     
-                    await interaction.reply({ embeds: [helpEmbed], ephemeral: true });
+                    await interaction.reply({ embeds: [helpEmbed], flags: [64] });
                     break;
                     
                 case 'مشرفين_التذاكر':
@@ -452,12 +457,12 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     if (action === 'add') {
                         if (!role) {
                             await interaction.reply({ content: 'يجب تحديد الرتبة المراد إضافتها', flags: [64] });
-                            return;
+                            break;
                         }
                         
                         if (adminRoles.includes(role.id)) {
                             await interaction.reply({ content: `الرتبة ${role.name} موجودة بالفعل في قائمة مشرفين التذاكر`, flags: [64] });
-                            return;
+                            break;
                         }
                         
                         adminRoles.push(role.id);
@@ -473,13 +478,13 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     } else if (action === 'remove') {
                         if (!role) {
                             await interaction.reply({ content: 'يجب تحديد الرتبة المراد إزالتها', flags: [64] });
-                            return;
+                            break;
                         }
                         
                         const roleIndex = adminRoles.indexOf(role.id);
                         if (roleIndex === -1) {
                             await interaction.reply({ content: `الرتبة ${role.name} غير موجودة في قائمة مشرفين التذاكر`, flags: [64] });
-                            return;
+                            break;
                         }
                         
                         adminRoles.splice(roleIndex, 1);
@@ -495,7 +500,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     } else if (action === 'list') {
                         if (adminRoles.length === 0) {
                             await interaction.reply({ content: 'لا توجد رتب مشرفين تذاكر محددة حالياً', flags: [64] });
-                            return;
+                            break;
                         }
                         
                         const rolesList = adminRoles.map(roleId => {
