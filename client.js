@@ -84,7 +84,7 @@ const createTicketMainEmbed = () => {
     return new EmbedBuilder()
         .setTitle('افتح تذكرتك واختار مايناسبك')
         .setDescription('فتح تذكرة من هنا')
-        .setImage('attachment://DISCORD_1757011496282.gif')
+        .setImage('attachment://IMG_5569_1757012310053.jpeg')
         .setColor(0x000000)
         .setTimestamp();
 };
@@ -105,7 +105,7 @@ const createTicketEmbed = (ticketType, description, user) => {
             { name: 'التاريخ:', value: new Date().toLocaleString('ar-SA'), inline: true }
         )
         .setColor(0x00AE86)
-        .setImage('attachment://DISCORD_1757011496282.gif')
+        .setImage('attachment://IMG_5569_1757012310053.jpeg')
         .setTimestamp()
         .setFooter({ text: 'نظام التذاكر' });
     
@@ -411,8 +411,18 @@ ticketBot.once('ready', async () => {
 });
 
 // معالجة slash commands للتذاكر
-// منع معالجة interactions متعددة
+// منع معالجة interactions متعددة  
 const processedInteractions = new Set();
+
+// تنظيف المعرفات القديمة كل دقيقة
+setInterval(() => {
+    const oneMinuteAgo = Date.now() - 60000;
+    for (const [interactionId, timestamp] of processedInteractions.entries()) {
+        if (timestamp < oneMinuteAgo) {
+            processedInteractions.delete(interactionId);
+        }
+    }
+}, 60000);
 
 ticketBot.on('interactionCreate', async (interaction) => {
     // منع معالجة نفس interaction
@@ -420,10 +430,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
         return;
     }
     
-    processedInteractions.add(interaction.id);
-    
-    // تنظيف المعرفات القديمة كل دقيقة
-    setTimeout(() => processedInteractions.delete(interaction.id), 60000);
+    processedInteractions.set(interaction.id, Date.now());
     
     if (interaction.isChatInputCommand()) {
         const { commandName } = interaction;
@@ -438,7 +445,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     try {
                         // إرسال الصورة مع الembed
                         const { AttachmentBuilder } = require('discord.js');
-                        const attachment = new AttachmentBuilder('attached_assets/DISCORD_1757011496282.gif', { name: 'DISCORD_1757011496282.gif' });
+                        const attachment = new AttachmentBuilder('attached_assets/IMG_5569_1757012310053.jpeg', { name: 'IMG_5569_1757012310053.jpeg' });
                         
                         await interaction.reply({ 
                             embeds: [mainEmbed], 
