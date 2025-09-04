@@ -447,6 +447,12 @@ ticketBot.on('interactionCreate', async (interaction) => {
                         });
                     } catch (replyError) {
                         console.error('خطأ في الرد على أمر التذكرة:', replyError.message);
+                        if (!interaction.replied && !interaction.deferred) {
+                            await interaction.reply({ 
+                                content: 'حدث خطأ في عرض نظام التذاكر. حاول مرة أخرى.', 
+                                flags: [64] 
+                            }).catch(() => {});
+                        }
                     }
                     break;
 
@@ -578,13 +584,23 @@ ticketBot.on('interactionCreate', async (interaction) => {
         try {
             switch (interaction.customId) {
                 case 'open_ticket_menu':
-                    const optionsEmbed = createTicketOptionsEmbed();
-                    const optionsButtons = createTicketOptionsButtons();
-                    
-                    await interaction.update({ 
-                        embeds: [optionsEmbed], 
-                        components: optionsButtons 
-                    });
+                    try {
+                        const optionsEmbed = createTicketOptionsEmbed();
+                        const optionsButtons = createTicketOptionsButtons();
+                        
+                        await interaction.update({ 
+                            embeds: [optionsEmbed], 
+                            components: optionsButtons 
+                        });
+                    } catch (updateError) {
+                        console.error('خطأ في تحديث قائمة التذاكر:', updateError.message);
+                        if (!interaction.replied && !interaction.deferred) {
+                            await interaction.reply({ 
+                                content: 'حدث خطأ في عرض قائمة التذاكر. حاول مرة أخرى.', 
+                                flags: [64] 
+                            }).catch(() => {});
+                        }
+                    }
                     break;
 
                 case 'ticket_senior_complaint':

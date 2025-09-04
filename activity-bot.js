@@ -472,14 +472,51 @@ activityBot.on('interactionCreate', async (interaction) => {
                     }
                     
                     const isCurrentlyTracking = activityBot.trackingActive.get(guildId) || false;
-                    activityBot.trackingActive.set(guildId, !isCurrentlyTracking);
-                    
                     const newStatus = !isCurrentlyTracking;
+                    activityBot.trackingActive.set(guildId, newStatus);
+                    
+                    // إذا بدأت المراقبة، سجل الأعضاء الموجودين حالياً في الرومات
+                    if (newStatus) {
+                        const currentTime = Date.now();
+                        selectedChannels.forEach(channelId => {
+                            const channel = interaction.guild.channels.cache.get(channelId);
+                            if (channel && channel.members) {
+                                channel.members.forEach(member => {
+                                    if (!member.user.bot) {
+                                        const userId = member.user.id;
+                                        
+                                        if (!activityBot.voiceActivity.has(userId)) {
+                                            activityBot.voiceActivity.set(userId, {
+                                                totalTime: 0,
+                                                sessions: [],
+                                                currentSession: null
+                                            });
+                                        }
+                                        
+                                        const userActivity = activityBot.voiceActivity.get(userId);
+                                        
+                                        // بدء جلسة جديدة للأعضاء الموجودين
+                                        userActivity.currentSession = {
+                                            channelId: channelId,
+                                            channelName: channel.name,
+                                            joinTime: currentTime,
+                                            leaveTime: null,
+                                            duration: 0
+                                        };
+                                        
+                                        activityBot.voiceActivity.set(userId, userActivity);
+                                    }
+                                });
+                            }
+                        });
+                        console.log(`تم تسجيل الأعضاء الموجودين حالياً في ${selectedChannels.length} روم للمراقبة`);
+                    }
+                    
                     const statusEmbed = new EmbedBuilder()
                         .setTitle(newStatus ? '▶️ تم بدء المراقبة' : '⏹️ تم إيقاف المراقبة')
                         .setDescription(
                             newStatus 
-                                ? `بدأت مراقبة النشاط في ${selectedChannels.length} روم صوتي`
+                                ? `بدأت مراقبة النشاط في ${selectedChannels.length} روم صوتي\n✅ تم تسجيل الأعضاء الموجودين حالياً`
                                 : 'تم إيقاف مراقبة النشاط'
                         )
                         .setColor(newStatus ? 0x00AE86 : 0xe74c3c)
