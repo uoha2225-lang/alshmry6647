@@ -84,7 +84,7 @@ const createTicketMainEmbed = () => {
     return new EmbedBuilder()
         .setTitle('افتح تذكرتك واختار مايناسبك')
         .setDescription('فتح تذكرة من هنا')
-        .setImage('attachment://IMG_5569_1757012310053.jpeg')
+        .setImage('attachment://IMG_5570_1757012556488.png')
         .setColor(0x000000)
         .setTimestamp();
 };
@@ -105,7 +105,7 @@ const createTicketEmbed = (ticketType, description, user) => {
             { name: 'التاريخ:', value: new Date().toLocaleString('ar-SA'), inline: true }
         )
         .setColor(0x00AE86)
-        .setImage('attachment://IMG_5569_1757012310053.jpeg')
+        .setImage('attachment://IMG_5570_1757012556488.png')
         .setTimestamp()
         .setFooter({ text: 'نظام التذاكر' });
     
@@ -412,7 +412,7 @@ ticketBot.once('ready', async () => {
 
 // معالجة slash commands للتذاكر
 // منع معالجة interactions متعددة  
-const processedInteractions = new Set();
+const processedInteractions = new Map();
 
 // تنظيف المعرفات القديمة كل دقيقة
 setInterval(() => {
@@ -445,7 +445,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     try {
                         // إرسال الصورة مع الembed
                         const { AttachmentBuilder } = require('discord.js');
-                        const attachment = new AttachmentBuilder('attached_assets/IMG_5569_1757012310053.jpeg', { name: 'IMG_5569_1757012310053.jpeg' });
+                        const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
                         
                         await interaction.reply({ 
                             embeds: [mainEmbed], 
