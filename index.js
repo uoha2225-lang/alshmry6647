@@ -1,4 +1,4 @@
-const { ticketBot, reviewBot } = require('./client');
+const { ticketBot, reviewBot, activityBot } = require('./client');
 const tokens = require('./tokens');
 const http = require('http');
 
@@ -9,7 +9,8 @@ const server = http.createServer((req, res) => {
         status: 'البوتات تعمل بنجاح',
         bots: {
             ticket_bot: ticketBot.user ? ticketBot.user.tag : 'غير متصل',
-            review_bot: reviewBot.user ? reviewBot.user.tag : 'غير متصل'
+            review_bot: reviewBot.user ? reviewBot.user.tag : 'غير متصل',
+            activity_bot: activityBot.user ? activityBot.user.tag : 'غير متصل'
         },
         uptime: process.uptime()
     }));
@@ -34,6 +35,10 @@ async function startBots() {
             console.warn('تحذير: لم يتم تعيين REVIEW_BOT_TOKEN');
         }
         
+        if (!tokens.ACTIVITY_BOT_TOKEN) {
+            console.warn('تحذير: لم يتم تعيين ACTIVITY_BOT_TOKEN');
+        }
+        
         // تشغيل بوت التذاكر
         if (tokens.REMINDER_BOT_TOKEN) {
             await ticketBot.login(tokens.REMINDER_BOT_TOKEN);
@@ -50,16 +55,29 @@ async function startBots() {
             console.log('⚠️ تم تخطي بوت التقييمات - لا يوجد توكن');
         }
         
+        // تشغيل بوت مراقبة النشاط
+        if (tokens.ACTIVITY_BOT_TOKEN) {
+            await activityBot.login(tokens.ACTIVITY_BOT_TOKEN);
+            console.log('✅ تم تشغيل بوت مراقبة النشاط بنجاح');
+        } else {
+            console.log('⚠️ تم تخطي بوت مراقبة النشاط - لا يوجد توكن');
+        }
+        
         console.log('\n🚀 تم تشغيل جميع البوتات المتاحة!');
         console.log('\n🎫 أوامر بوت التذاكر (Slash Commands):');
         console.log('   /تذكرة - فتح نظام التذاكر مع الأزرار');
         console.log('   /ticket - Open ticket system (English)');
         console.log('   /help - عرض الأوامر');
-        console.log('   • الأزرار: للشراء | للاستفسار | لحل مشكلة');
+        console.log('   • الأزرار: شكوى على إدارة عليا | تعويض | نقل | شكوى على إداري');
         console.log('\n⭐ بوت التقييمات (Slash Commands + Text):');
         console.log('   /تقييم [rating] - إرسال تقييم بالنجوم');
         console.log('   /review [rating] - Send star rating (English)');
         console.log('   أو اكتب رقم من 1-5 في أي رسالة (الطريقة القديمة)');
+        console.log('\n🎤 بوت مراقبة النشاط (Activity Tracking):');
+        console.log('   /مراقبة_النشاط - فتح لوحة مراقبة النشاط');
+        console.log('   /activity_monitor - Open activity monitoring panel (English)');
+        console.log('   /تقرير_النشاط - عرض تقرير مفصل');
+        console.log('   • ميزات: مراقبة الرومات الصوتية | حساب وقت التفاعل | تقارير مفصلة');
         
     } catch (error) {
         console.error('خطأ في تشغيل البوتات:', error);
