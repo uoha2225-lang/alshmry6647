@@ -432,6 +432,15 @@ ticketBot.on('interactionCreate', async (interaction) => {
     
     processedInteractions.set(interaction.id, Date.now());
     
+    // تسجيل التفاعل للتشخيص
+    console.log('🔔 تفاعل جديد:', {
+        type: interaction.type,
+        customId: interaction.customId || 'N/A',
+        commandName: interaction.commandName || 'N/A',
+        user: interaction.user.username,
+        guild: interaction.guild?.name || 'DM'
+    });
+    
     if (interaction.isChatInputCommand()) {
         const { commandName } = interaction;
 
@@ -445,20 +454,35 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     try {
                         // إرسال الصورة مع الembed
                         const { AttachmentBuilder } = require('discord.js');
-                        const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
+                        const fs = require('fs');
                         
-                        await interaction.reply({ 
+                        let replyOptions = { 
                             embeds: [mainEmbed], 
-                            components: [mainButton],
-                            files: [attachment]
-                        });
+                            components: [mainButton]
+                        };
+                        
+                        // فحص وجود الصورة قبل إرفاقها
+                        if (fs.existsSync('attached_assets/IMG_5570_1757012556488.png')) {
+                            const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
+                            replyOptions.files = [attachment];
+                        } else {
+                            console.warn('⚠️ الصورة غير موجودة: attached_assets/IMG_5570_1757012556488.png');
+                        }
+                        
+                        await interaction.reply(replyOptions);
+                        console.log('✅ تم إرسال نظام التذاكر بنجاح');
+                        
                     } catch (replyError) {
-                        console.error('خطأ في الرد على أمر التذكرة:', replyError.message);
+                        console.error('❌ خطأ في الرد على أمر التذكرة:', replyError.message);
                         if (!interaction.replied && !interaction.deferred) {
-                            await interaction.reply({ 
-                                content: 'حدث خطأ في عرض نظام التذاكر. حاول مرة أخرى.', 
-                                flags: [64] 
-                            }).catch(() => {});
+                            try {
+                                await interaction.reply({ 
+                                    content: 'حدث خطأ في عرض نظام التذاكر. حاول مرة أخرى.', 
+                                    flags: [64] 
+                                });
+                            } catch (fallbackError) {
+                                console.error('❌ فشل في الرد الاحتياطي:', fallbackError.message);
+                            }
                         }
                     }
                     break;
@@ -584,8 +608,24 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     break;
             }
         } catch (error) {
-            console.error('خطأ في معالجة slash command:', error.message || error);
-            // عدم الرد على الأخطاء لتجنب interaction acknowledged errors
+            console.error('❌ خطأ في معالجة slash command:', {
+                error: error.message || error,
+                commandName: interaction.commandName,
+                user: interaction.user.username,
+                guild: interaction.guild?.name
+            });
+            
+            // محاولة الرد على الأخطاء إذا لم يتم الرد بعد
+            if (!interaction.replied && !interaction.deferred) {
+                try {
+                    await interaction.reply({ 
+                        content: 'حدث خطأ أثناء تنفيذ الأمر. حاول مرة أخرى.', 
+                        flags: [64] 
+                    });
+                } catch (replyError) {
+                    console.error('❌ فشل في الرد على الخطأ:', replyError.message);
+                }
+            }
         }
     } else if (interaction.isButton()) {
         try {
@@ -669,7 +709,25 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     
                     // إرسال رسالة في الروم الجديد مع أزرار الإدارة
                     const seniorComplaintManageButtons = createTicketManageButtons();
-                    await seniorComplaintChannel.send({ embeds: [seniorComplaintEmbed], components: [seniorComplaintManageButtons] });
+                    
+                    try {
+                        // إرسال الصورة مع الembed في التذكرة
+                        const fs = require('fs');
+                        let ticketMessageOptions = { embeds: [seniorComplaintEmbed], components: [seniorComplaintManageButtons] };
+                        
+                        if (fs.existsSync('attached_assets/IMG_5570_1757012556488.png')) {
+                            const { AttachmentBuilder } = require('discord.js');
+                            const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
+                            ticketMessageOptions.files = [attachment];
+                        }
+                        
+                        await seniorComplaintChannel.send(ticketMessageOptions);
+                        console.log('✅ تم إنشاء تذكرة شكوى على إدارة عليا بنجاح');
+                    } catch (sendError) {
+                        console.error('❌ خطأ في إرسال رسالة التذكرة:', sendError.message);
+                        // رسالة احتياطية بدون صورة
+                        await seniorComplaintChannel.send({ embeds: [seniorComplaintEmbed], components: [seniorComplaintManageButtons] });
+                    }
                     
                     await interaction.reply({ 
                         content: `تم إنشاء تذكرة شكوى على ادارة عليا في ${seniorComplaintChannel}`, 
@@ -736,7 +794,25 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     
                     // إرسال رسالة في الروم الجديد مع أزرار الإدارة
                     const compensationManageButtons = createTicketManageButtons();
-                    await compensationChannel.send({ embeds: [compensationEmbed], components: [compensationManageButtons] });
+                    
+                    try {
+                        // إرسال الصورة مع الembed في التذكرة
+                        const fs = require('fs');
+                        let ticketMessageOptions = { embeds: [compensationEmbed], components: [compensationManageButtons] };
+                        
+                        if (fs.existsSync('attached_assets/IMG_5570_1757012556488.png')) {
+                            const { AttachmentBuilder } = require('discord.js');
+                            const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
+                            ticketMessageOptions.files = [attachment];
+                        }
+                        
+                        await compensationChannel.send(ticketMessageOptions);
+                        console.log('✅ تم إنشاء تذكرة تعويض بنجاح');
+                    } catch (sendError) {
+                        console.error('❌ خطأ في إرسال رسالة التذكرة:', sendError.message);
+                        // رسالة احتياطية بدون صورة
+                        await compensationChannel.send({ embeds: [compensationEmbed], components: [compensationManageButtons] });
+                    }
                     
                     await interaction.reply({ 
                         content: `تم إنشاء تذكرة تعويض في ${compensationChannel}`, 
@@ -803,7 +879,25 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     
                     // إرسال رسالة في الروم الجديد مع أزرار الإدارة
                     const transferManageButtons = createTicketManageButtons();
-                    await transferChannel.send({ embeds: [transferEmbed], components: [transferManageButtons] });
+                    
+                    try {
+                        // إرسال الصورة مع الembed في التذكرة
+                        const fs = require('fs');
+                        let ticketMessageOptions = { embeds: [transferEmbed], components: [transferManageButtons] };
+                        
+                        if (fs.existsSync('attached_assets/IMG_5570_1757012556488.png')) {
+                            const { AttachmentBuilder } = require('discord.js');
+                            const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
+                            ticketMessageOptions.files = [attachment];
+                        }
+                        
+                        await transferChannel.send(ticketMessageOptions);
+                        console.log('✅ تم إنشاء تذكرة نقل بنجاح');
+                    } catch (sendError) {
+                        console.error('❌ خطأ في إرسال رسالة التذكرة:', sendError.message);
+                        // رسالة احتياطية بدون صورة
+                        await transferChannel.send({ embeds: [transferEmbed], components: [transferManageButtons] });
+                    }
                     
                     await interaction.reply({ 
                         content: `تم إنشاء تذكرة نقل في ${transferChannel}`, 
@@ -870,7 +964,25 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     
                     // إرسال رسالة في الروم الجديد مع أزرار الإدارة
                     const adminComplaintManageButtons = createTicketManageButtons();
-                    await adminComplaintChannel.send({ embeds: [adminComplaintEmbed], components: [adminComplaintManageButtons] });
+                    
+                    try {
+                        // إرسال الصورة مع الembed في التذكرة
+                        const fs = require('fs');
+                        let ticketMessageOptions = { embeds: [adminComplaintEmbed], components: [adminComplaintManageButtons] };
+                        
+                        if (fs.existsSync('attached_assets/IMG_5570_1757012556488.png')) {
+                            const { AttachmentBuilder } = require('discord.js');
+                            const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
+                            ticketMessageOptions.files = [attachment];
+                        }
+                        
+                        await adminComplaintChannel.send(ticketMessageOptions);
+                        console.log('✅ تم إنشاء تذكرة شكوى على إداري بنجاح');
+                    } catch (sendError) {
+                        console.error('❌ خطأ في إرسال رسالة التذكرة:', sendError.message);
+                        // رسالة احتياطية بدون صورة
+                        await adminComplaintChannel.send({ embeds: [adminComplaintEmbed], components: [adminComplaintManageButtons] });
+                    }
                     
                     await interaction.reply({ 
                         content: `تم إنشاء تذكرة شكوى على إداري في ${adminComplaintChannel}`, 
@@ -937,8 +1049,25 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     break;
             }
         } catch (error) {
-            console.error('خطأ في معالجة الأزرار:', error.message || error);
-            // عدم الرد على الأخطاء لتجنب interaction acknowledged errors
+            console.error('❌ خطأ في معالجة الأزرار:', {
+                error: error.message || error,
+                customId: interaction.customId,
+                user: interaction.user.username,
+                guild: interaction.guild?.name,
+                stack: error.stack
+            });
+            
+            // محاولة الرد على الأخطاء إذا لم يتم الرد بعد
+            if (!interaction.replied && !interaction.deferred) {
+                try {
+                    await interaction.reply({ 
+                        content: 'حدث خطأ أثناء معالجة طلبك. حاول مرة أخرى.', 
+                        flags: [64] 
+                    });
+                } catch (replyError) {
+                    console.error('❌ فشل في الرد على خطأ الزر:', replyError.message);
+                }
+            }
         }
     }
 });

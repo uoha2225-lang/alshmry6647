@@ -12,5 +12,7 @@ services:
         sync: false
       - key: REVIEW_BOT_TOKEN
         sync: false
+      - key: ACTIVITY_BOT_TOKEN
+        sync: false
     healthCheckPath: /
     autoDeploy: true

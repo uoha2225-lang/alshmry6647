@@ -24,43 +24,55 @@ server.listen(PORT, '0.0.0.0', () => {
 // دالة لبدء تشغيل البوتات
 async function startBots() {
     try {
-        console.log('بدء تشغيل البوتات...');
+        console.log('🚀 بدء تشغيل البوتات...');
         
-        // التحقق من وجود التوكنات
-        if (!tokens.REMINDER_BOT_TOKEN) {
-            console.warn('تحذير: لم يتم تعيين REMINDER_BOT_TOKEN');
-        }
-        
-        if (!tokens.REVIEW_BOT_TOKEN) {
-            console.warn('تحذير: لم يتم تعيين REVIEW_BOT_TOKEN');
-        }
-        
-        if (!tokens.ACTIVITY_BOT_TOKEN) {
-            console.warn('تحذير: لم يتم تعيين ACTIVITY_BOT_TOKEN');
-        }
+        let botsStarted = 0;
         
         // تشغيل بوت التذاكر
         if (tokens.REMINDER_BOT_TOKEN) {
-            await ticketBot.login(tokens.REMINDER_BOT_TOKEN);
-            console.log('✅ تم تشغيل بوت التذاكر بنجاح');
+            try {
+                await ticketBot.login(tokens.REMINDER_BOT_TOKEN);
+                console.log('✅ تم تشغيل بوت التذاكر بنجاح');
+                botsStarted++;
+            } catch (error) {
+                console.error('❌ خطأ في تشغيل بوت التذاكر:', error.message);
+            }
         } else {
-            console.log('⚠️ تم تخطي بوت التذاكر - لا يوجد توكن');
+            console.log('⚠️ تم تخطي بوت التذاكر - لا يوجد REMINDER_BOT_TOKEN في متغيرات البيئة');
         }
         
         // تشغيل بوت التقييمات
         if (tokens.REVIEW_BOT_TOKEN) {
-            await reviewBot.login(tokens.REVIEW_BOT_TOKEN);
-            console.log('✅ تم تشغيل بوت التقييمات بنجاح');
+            try {
+                await reviewBot.login(tokens.REVIEW_BOT_TOKEN);
+                console.log('✅ تم تشغيل بوت التقييمات بنجاح');
+                botsStarted++;
+            } catch (error) {
+                console.error('❌ خطأ في تشغيل بوت التقييمات:', error.message);
+            }
         } else {
-            console.log('⚠️ تم تخطي بوت التقييمات - لا يوجد توكن');
+            console.log('⚠️ تم تخطي بوت التقييمات - لا يوجد REVIEW_BOT_TOKEN في متغيرات البيئة');
         }
         
         // تشغيل بوت مراقبة النشاط
         if (tokens.ACTIVITY_BOT_TOKEN) {
-            await activityBot.login(tokens.ACTIVITY_BOT_TOKEN);
-            console.log('✅ تم تشغيل بوت مراقبة النشاط بنجاح');
+            try {
+                await activityBot.login(tokens.ACTIVITY_BOT_TOKEN);
+                console.log('✅ تم تشغيل بوت مراقبة النشاط بنجاح');
+                botsStarted++;
+            } catch (error) {
+                console.error('❌ خطأ في تشغيل بوت مراقبة النشاط:', error.message);
+            }
         } else {
-            console.log('⚠️ تم تخطي بوت مراقبة النشاط - لا يوجد توكن');
+            console.log('⚠️ تم تخطي بوت مراقبة النشاط - لا يوجد ACTIVITY_BOT_TOKEN في متغيرات البيئة');
+        }
+        
+        if (botsStarted === 0) {
+            console.log('\n⚠️ لم يتم تشغيل أي بوت! يرجى تعيين متغيرات البيئة التالية:');
+            console.log('   - REMINDER_BOT_TOKEN: لبوت التذاكر');
+            console.log('   - REVIEW_BOT_TOKEN: لبوت التقييمات');
+            console.log('   - ACTIVITY_BOT_TOKEN: لبوت مراقبة النشاط');
+            console.log('\n📝 لتشغيل البوتات على Render، أضف هذه المتغيرات في Environment Variables');
         }
         
         console.log('\n🚀 تم تشغيل جميع البوتات المتاحة!');
