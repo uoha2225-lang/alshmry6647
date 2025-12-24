@@ -134,7 +134,7 @@ const createReviewEmbed = (rating, reviewerUser, reviewId, reviewCount) => {
         )
         .setColor(0x00AE86)
         .setFooter({ 
-            text: 'جميع الحقوق محفوظة © devil', 
+            text: 'جميع الحقوق محفوظة © The North City', 
             iconURL: 'https://cdn.discordapp.com/attachments/your-attachment-url/nify-logo.png' 
         });
 };
@@ -162,7 +162,7 @@ const createReviewEmbedWithText = (rating, reviewerUser, reviewId, reviewCount, 
         )
         .setColor(0x00AE86)
         .setFooter({ 
-            text: 'جميع الحقوق محفوظة © devil', 
+            text: 'جميع الحقوق محفوظة © The North City', 
             iconURL: 'https://cdn.discordapp.com/attachments/your-attachment-url/nify-logo.png' 
         });
 };
