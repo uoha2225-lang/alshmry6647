@@ -21,6 +21,8 @@ ticketBot.activeTickets = new Collection();
 ticketBot.adminRoles = new Collection(); // لحفظ رتب مشرفين التذاكر
 ticketBot.logChannels = new Collection(); // لحفظ رومز سجلات التذاكر
 ticketBot.cooldowns = new Map(); // لمنع الضغط المتكرر
+ticketBot.ticketsByType = new Collection(); // لحفظ التذاكر حسب النوع {guildId: {ticketType: [tickets]}}
+ticketBot.ticketRoles = new Collection(); // لحفظ رتب كل نوع تذكرة {guildId: {ticketType: [roleIds]}}
 
 // بوت التقييمات
 const reviewBot = createBotClient();
@@ -184,24 +186,24 @@ const createTicketOptionsButtons = () => {
     const row1 = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId('ticket_senior_complaint')
-                .setLabel('شكوى على ادارة عليا')
+                .setCustomId('ticket_admin_transfer')
+                .setLabel('النقل الاداري')
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
-                .setCustomId('ticket_compensation')
-                .setLabel('تكت تعويض')
+                .setCustomId('ticket_military_transfer')
+                .setLabel('النقل العسكري')
                 .setStyle(ButtonStyle.Secondary)
         );
     
     const row2 = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId('ticket_transfer')
-                .setLabel('تذكرة نقل')
+                .setCustomId('ticket_inquiry')
+                .setLabel('استفسار')
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
                 .setCustomId('ticket_admin_complaint')
-                .setLabel('تذكرة شكوى على إداري')
+                .setLabel('شكوى على اداري')
                 .setStyle(ButtonStyle.Secondary)
         );
     return [row1, row2];
@@ -649,344 +651,200 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     }
                     break;
 
-                case 'ticket_senior_complaint':
-                    // فحص cooldown لمنع إنشاء تذاكر متعددة
-                    const seniorComplaintUserId = interaction.user.id;
-                    const seniorComplaintCooldownKey = `${seniorComplaintUserId}-ticket`;
-                    const seniorComplaintNow = Date.now();
-                    const seniorComplaintCooldownAmount = 10000; // 10 ثوان
+                case 'ticket_admin_transfer':
+                    // فحص cooldown
+                    const adminTransferUserId = interaction.user.id;
+                    const adminTransferCooldownKey = `${adminTransferUserId}-ticket`;
+                    const adminTransferNow = Date.now();
+                    const adminTransferCooldownAmount = 10000;
                     
-                    if (ticketBot.cooldowns.has(seniorComplaintCooldownKey)) {
-                        const seniorComplaintExpirationTime = ticketBot.cooldowns.get(seniorComplaintCooldownKey) + seniorComplaintCooldownAmount;
-                        
-                        if (seniorComplaintNow < seniorComplaintExpirationTime) {
-                            const seniorComplaintTimeLeft = (seniorComplaintExpirationTime - seniorComplaintNow) / 1000;
-                            await interaction.reply({ 
-                                content: `يجب الانتظار ${seniorComplaintTimeLeft.toFixed(1)} ثانية قبل إنشاء تذكرة جديدة.`, 
-                                ephemeral: true 
-                            });
+                    if (ticketBot.cooldowns.has(adminTransferCooldownKey)) {
+                        const adminTransferExpirationTime = ticketBot.cooldowns.get(adminTransferCooldownKey) + adminTransferCooldownAmount;
+                        if (adminTransferNow < adminTransferExpirationTime) {
+                            const adminTransferTimeLeft = (adminTransferExpirationTime - adminTransferNow) / 1000;
+                            await interaction.reply({ content: `يجب الانتظار ${adminTransferTimeLeft.toFixed(1)} ثانية قبل إنشاء تذكرة جديدة.`, ephemeral: true });
                             break;
                         }
                     }
                     
-                    ticketBot.cooldowns.set(seniorComplaintCooldownKey, seniorComplaintNow);
-                    setTimeout(() => ticketBot.cooldowns.delete(seniorComplaintCooldownKey), seniorComplaintCooldownAmount);
+                    ticketBot.cooldowns.set(adminTransferCooldownKey, adminTransferNow);
+                    setTimeout(() => ticketBot.cooldowns.delete(adminTransferCooldownKey), adminTransferCooldownAmount);
                     
-                    // إنشاء روم تذكرة جديد
-                    const seniorComplaintAdminRoles = ticketBot.adminRoles.get(interaction.guild.id) || [];
-                    const seniorComplaintPermissionOverwrites = [
-                        {
-                            id: interaction.guild.id,
-                            deny: ['ViewChannel'],
-                        },
-                        {
-                            id: interaction.user.id,
-                            allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'],
-                        },
+                    const adminTransferAdminRoles = ticketBot.adminRoles.get(interaction.guild.id) || [];
+                    const adminTransferPermissionOverwrites = [
+                        { id: interaction.guild.id, deny: ['ViewChannel'] },
+                        { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
                     ];
                     
-                    // إضافة رتب المشرفين
-                    seniorComplaintAdminRoles.forEach(roleId => {
-                        seniorComplaintPermissionOverwrites.push({
+                    adminTransferAdminRoles.forEach(roleId => {
+                        adminTransferPermissionOverwrites.push({
                             id: roleId,
                             allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageMessages'],
                         });
                     });
                     
-                    const seniorComplaintChannel = await interaction.guild.channels.create({
-                        name: `شكوى-ادارة-عليا-${interaction.user.username}`,
-                        type: 0, // text channel
-                        parent: null, // يمكن تحديد category إذا أردت
-                        permissionOverwrites: seniorComplaintPermissionOverwrites,
+                    const adminTransferChannel = await interaction.guild.channels.create({
+                        name: `النقل-الاداري-${interaction.user.username}`,
+                        type: 0,
+                        permissionOverwrites: adminTransferPermissionOverwrites,
                     });
                     
-                    const seniorComplaintEmbed = createTicketEmbed(
-                        'شكوى على ادارة عليا',
-                        'هذه التذكرة مخصصة لتقديم شكاوى على الإدارة العليا',
+                    const adminTransferEmbed = createTicketEmbed(
+                        'النقل الاداري',
+                        `تذكرة نقل اداري من ${interaction.user}`,
                         interaction.user
                     );
                     
-                    // إرسال رسالة في الروم الجديد مع أزرار الإدارة
-                    const seniorComplaintManageButtons = createTicketManageButtons();
-                    
-                    try {
-                        // إرسال الصورة مع الembed في التذكرة
-                        const fs = require('fs');
-                        let ticketMessageOptions = { embeds: [seniorComplaintEmbed], components: [seniorComplaintManageButtons] };
-                        
-                        if (fs.existsSync('attached_assets/IMG_5570_1757012556488.png')) {
-                            const { AttachmentBuilder } = require('discord.js');
-                            const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
-                            ticketMessageOptions.files = [attachment];
-                        }
-                        
-                        await seniorComplaintChannel.send(ticketMessageOptions);
-                        console.log('✅ تم إنشاء تذكرة شكوى على إدارة عليا بنجاح');
-                    } catch (sendError) {
-                        console.error('❌ خطأ في إرسال رسالة التذكرة:', sendError.message);
-                        // رسالة احتياطية بدون صورة
-                        await seniorComplaintChannel.send({ embeds: [seniorComplaintEmbed], components: [seniorComplaintManageButtons] });
-                    }
-                    
-                    await interaction.reply({ 
-                        content: `تم إنشاء تذكرة شكوى على ادارة عليا في ${seniorComplaintChannel}`, 
-                        ephemeral: true 
-                    });
+                    const adminTransferManageButtons = createTicketManageButtons();
+                    await adminTransferChannel.send({ embeds: [adminTransferEmbed], components: [adminTransferManageButtons] });
+                    await interaction.reply({ content: `تم إنشاء تذكرة النقل الاداري في ${adminTransferChannel}`, ephemeral: true });
                     break;
 
-                case 'ticket_compensation':
-                    // فحص cooldown لمنع إنشاء تذاكر متعددة
-                    const compensationUserId = interaction.user.id;
-                    const compensationCooldownKey = `${compensationUserId}-ticket`;
-                    const compensationNow = Date.now();
-                    const compensationCooldownAmount = 10000; // 10 ثوان
+                case 'ticket_military_transfer':
+                    // فحص cooldown
+                    const militaryTransferUserId = interaction.user.id;
+                    const militaryTransferCooldownKey = `${militaryTransferUserId}-ticket`;
+                    const militaryTransferNow = Date.now();
+                    const militaryTransferCooldownAmount = 10000;
                     
-                    if (ticketBot.cooldowns.has(compensationCooldownKey)) {
-                        const compensationExpirationTime = ticketBot.cooldowns.get(compensationCooldownKey) + compensationCooldownAmount;
-                        
-                        if (compensationNow < compensationExpirationTime) {
-                            const compensationTimeLeft = (compensationExpirationTime - compensationNow) / 1000;
-                            await interaction.reply({ 
-                                content: `يجب الانتظار ${compensationTimeLeft.toFixed(1)} ثانية قبل إنشاء تذكرة جديدة.`, 
-                                ephemeral: true 
-                            });
+                    if (ticketBot.cooldowns.has(militaryTransferCooldownKey)) {
+                        const militaryTransferExpirationTime = ticketBot.cooldowns.get(militaryTransferCooldownKey) + militaryTransferCooldownAmount;
+                        if (militaryTransferNow < militaryTransferExpirationTime) {
+                            const militaryTransferTimeLeft = (militaryTransferExpirationTime - militaryTransferNow) / 1000;
+                            await interaction.reply({ content: `يجب الانتظار ${militaryTransferTimeLeft.toFixed(1)} ثانية قبل إنشاء تذكرة جديدة.`, ephemeral: true });
                             break;
                         }
                     }
                     
-                    ticketBot.cooldowns.set(compensationCooldownKey, compensationNow);
-                    setTimeout(() => ticketBot.cooldowns.delete(compensationCooldownKey), compensationCooldownAmount);
+                    ticketBot.cooldowns.set(militaryTransferCooldownKey, militaryTransferNow);
+                    setTimeout(() => ticketBot.cooldowns.delete(militaryTransferCooldownKey), militaryTransferCooldownAmount);
                     
-                    // إنشاء روم تذكرة جديد
-                    const compensationGuildAdminRoles = ticketBot.adminRoles.get(interaction.guild.id) || [];
-                    const compensationPermissionOverwrites = [
-                        {
-                            id: interaction.guild.id,
-                            deny: ['ViewChannel'],
-                        },
-                        {
-                            id: interaction.user.id,
-                            allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'],
-                        },
+                    const militaryTransferAdminRoles = ticketBot.adminRoles.get(interaction.guild.id) || [];
+                    const militaryTransferPermissionOverwrites = [
+                        { id: interaction.guild.id, deny: ['ViewChannel'] },
+                        { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
                     ];
                     
-                    // إضافة رتب المشرفين
-                    compensationGuildAdminRoles.forEach(roleId => {
-                        compensationPermissionOverwrites.push({
+                    militaryTransferAdminRoles.forEach(roleId => {
+                        militaryTransferPermissionOverwrites.push({
                             id: roleId,
                             allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageMessages'],
                         });
                     });
                     
-                    const compensationChannel = await interaction.guild.channels.create({
-                        name: `تعويض-${interaction.user.username}`,
-                        type: 0, // text channel
-                        parent: null, // يمكن تحديد category إذا أردت
-                        permissionOverwrites: compensationPermissionOverwrites,
+                    const militaryTransferChannel = await interaction.guild.channels.create({
+                        name: `النقل-العسكري-${interaction.user.username}`,
+                        type: 0,
+                        permissionOverwrites: militaryTransferPermissionOverwrites,
                     });
                     
-                    const compensationEmbed = createTicketEmbed(
-                        'تعويض',
-                        'هذه التذكرة مخصصة لطلب التعويض',
+                    const militaryTransferEmbed = createTicketEmbed(
+                        'النقل العسكري',
+                        `تذكرة نقل عسكري من ${interaction.user}`,
                         interaction.user
                     );
                     
-                    // إرسال رسالة في الروم الجديد مع أزرار الإدارة
-                    const compensationManageButtons = createTicketManageButtons();
-                    
-                    try {
-                        // إرسال الصورة مع الembed في التذكرة
-                        const fs = require('fs');
-                        let ticketMessageOptions = { embeds: [compensationEmbed], components: [compensationManageButtons] };
-                        
-                        if (fs.existsSync('attached_assets/IMG_5570_1757012556488.png')) {
-                            const { AttachmentBuilder } = require('discord.js');
-                            const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
-                            ticketMessageOptions.files = [attachment];
-                        }
-                        
-                        await compensationChannel.send(ticketMessageOptions);
-                        console.log('✅ تم إنشاء تذكرة تعويض بنجاح');
-                    } catch (sendError) {
-                        console.error('❌ خطأ في إرسال رسالة التذكرة:', sendError.message);
-                        // رسالة احتياطية بدون صورة
-                        await compensationChannel.send({ embeds: [compensationEmbed], components: [compensationManageButtons] });
-                    }
-                    
-                    await interaction.reply({ 
-                        content: `تم إنشاء تذكرة تعويض في ${compensationChannel}`, 
-                        ephemeral: true 
-                    });
+                    const militaryTransferManageButtons = createTicketManageButtons();
+                    await militaryTransferChannel.send({ embeds: [militaryTransferEmbed], components: [militaryTransferManageButtons] });
+                    await interaction.reply({ content: `تم إنشاء تذكرة النقل العسكري في ${militaryTransferChannel}`, ephemeral: true });
                     break;
 
-                case 'ticket_transfer':
-                    // فحص cooldown لمنع إنشاء تذاكر متعددة
-                    const transferUserId = interaction.user.id;
-                    const transferCooldownKey = `${transferUserId}-ticket`;
-                    const transferNow = Date.now();
-                    const transferCooldownAmount = 10000; // 10 ثوان
+                case 'ticket_inquiry':
+                    // فحص cooldown
+                    const inquiryUserId = interaction.user.id;
+                    const inquiryCooldownKey = `${inquiryUserId}-ticket`;
+                    const inquiryNow = Date.now();
+                    const inquiryCooldownAmount = 10000;
                     
-                    if (ticketBot.cooldowns.has(transferCooldownKey)) {
-                        const transferExpirationTime = ticketBot.cooldowns.get(transferCooldownKey) + transferCooldownAmount;
-                        
-                        if (transferNow < transferExpirationTime) {
-                            const transferTimeLeft = (transferExpirationTime - transferNow) / 1000;
-                            await interaction.reply({ 
-                                content: `يجب الانتظار ${transferTimeLeft.toFixed(1)} ثانية قبل إنشاء تذكرة جديدة.`, 
-                                ephemeral: true 
-                            });
+                    if (ticketBot.cooldowns.has(inquiryCooldownKey)) {
+                        const inquiryExpirationTime = ticketBot.cooldowns.get(inquiryCooldownKey) + inquiryCooldownAmount;
+                        if (inquiryNow < inquiryExpirationTime) {
+                            const inquiryTimeLeft = (inquiryExpirationTime - inquiryNow) / 1000;
+                            await interaction.reply({ content: `يجب الانتظار ${inquiryTimeLeft.toFixed(1)} ثانية قبل إنشاء تذكرة جديدة.`, ephemeral: true });
                             break;
                         }
                     }
                     
-                    ticketBot.cooldowns.set(transferCooldownKey, transferNow);
-                    setTimeout(() => ticketBot.cooldowns.delete(transferCooldownKey), transferCooldownAmount);
+                    ticketBot.cooldowns.set(inquiryCooldownKey, inquiryNow);
+                    setTimeout(() => ticketBot.cooldowns.delete(inquiryCooldownKey), inquiryCooldownAmount);
                     
-                    // إنشاء روم تذكرة جديد
-                    const transferGuildAdminRoles = ticketBot.adminRoles.get(interaction.guild.id) || [];
-                    const transferPermissionOverwrites = [
-                        {
-                            id: interaction.guild.id,
-                            deny: ['ViewChannel'],
-                        },
-                        {
-                            id: interaction.user.id,
-                            allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'],
-                        },
+                    const inquiryAdminRoles = ticketBot.adminRoles.get(interaction.guild.id) || [];
+                    const inquiryPermissionOverwrites = [
+                        { id: interaction.guild.id, deny: ['ViewChannel'] },
+                        { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
                     ];
                     
-                    // إضافة رتب المشرفين
-                    transferGuildAdminRoles.forEach(roleId => {
-                        transferPermissionOverwrites.push({
+                    inquiryAdminRoles.forEach(roleId => {
+                        inquiryPermissionOverwrites.push({
                             id: roleId,
                             allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageMessages'],
                         });
                     });
                     
-                    const transferChannel = await interaction.guild.channels.create({
-                        name: `نقل-${interaction.user.username}`,
-                        type: 0, // text channel
-                        parent: null, // يمكن تحديد category إذا أردت
-                        permissionOverwrites: transferPermissionOverwrites,
+                    const inquiryChannel = await interaction.guild.channels.create({
+                        name: `استفسار-${interaction.user.username}`,
+                        type: 0,
+                        permissionOverwrites: inquiryPermissionOverwrites,
                     });
                     
-                    const transferEmbed = createTicketEmbed(
-                        'نقل',
-                        'هذه التذكرة مخصصة لطلبات النقل',
+                    const inquiryEmbed = createTicketEmbed(
+                        'استفسار',
+                        `استفسار من ${interaction.user}`,
                         interaction.user
                     );
                     
-                    // إرسال رسالة في الروم الجديد مع أزرار الإدارة
-                    const transferManageButtons = createTicketManageButtons();
-                    
-                    try {
-                        // إرسال الصورة مع الembed في التذكرة
-                        const fs = require('fs');
-                        let ticketMessageOptions = { embeds: [transferEmbed], components: [transferManageButtons] };
-                        
-                        if (fs.existsSync('attached_assets/IMG_5570_1757012556488.png')) {
-                            const { AttachmentBuilder } = require('discord.js');
-                            const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
-                            ticketMessageOptions.files = [attachment];
-                        }
-                        
-                        await transferChannel.send(ticketMessageOptions);
-                        console.log('✅ تم إنشاء تذكرة نقل بنجاح');
-                    } catch (sendError) {
-                        console.error('❌ خطأ في إرسال رسالة التذكرة:', sendError.message);
-                        // رسالة احتياطية بدون صورة
-                        await transferChannel.send({ embeds: [transferEmbed], components: [transferManageButtons] });
-                    }
-                    
-                    await interaction.reply({ 
-                        content: `تم إنشاء تذكرة نقل في ${transferChannel}`, 
-                        ephemeral: true 
-                    });
+                    const inquiryManageButtons = createTicketManageButtons();
+                    await inquiryChannel.send({ embeds: [inquiryEmbed], components: [inquiryManageButtons] });
+                    await interaction.reply({ content: `تم إنشاء تذكرة الاستفسار في ${inquiryChannel}`, ephemeral: true });
                     break;
 
                 case 'ticket_admin_complaint':
-                    // فحص cooldown لمنع إنشاء تذاكر متعددة
-                    const adminComplaintUserId = interaction.user.id;
-                    const adminComplaintCooldownKey = `${adminComplaintUserId}-ticket`;
-                    const adminComplaintNow = Date.now();
-                    const adminComplaintCooldownAmount = 10000; // 10 ثوان
+                    // فحص cooldown
+                    const complaintUserId = interaction.user.id;
+                    const complaintCooldownKey = `${complaintUserId}-ticket`;
+                    const complaintNow = Date.now();
+                    const complaintCooldownAmount = 10000;
                     
-                    if (ticketBot.cooldowns.has(adminComplaintCooldownKey)) {
-                        const adminComplaintExpirationTime = ticketBot.cooldowns.get(adminComplaintCooldownKey) + adminComplaintCooldownAmount;
-                        
-                        if (adminComplaintNow < adminComplaintExpirationTime) {
-                            const adminComplaintTimeLeft = (adminComplaintExpirationTime - adminComplaintNow) / 1000;
-                            await interaction.reply({ 
-                                content: `يجب الانتظار ${adminComplaintTimeLeft.toFixed(1)} ثانية قبل إنشاء تذكرة جديدة.`, 
-                                ephemeral: true 
-                            });
+                    if (ticketBot.cooldowns.has(complaintCooldownKey)) {
+                        const complaintExpirationTime = ticketBot.cooldowns.get(complaintCooldownKey) + complaintCooldownAmount;
+                        if (complaintNow < complaintExpirationTime) {
+                            const complaintTimeLeft = (complaintExpirationTime - complaintNow) / 1000;
+                            await interaction.reply({ content: `يجب الانتظار ${complaintTimeLeft.toFixed(1)} ثانية قبل إنشاء تذكرة جديدة.`, ephemeral: true });
                             break;
                         }
                     }
                     
-                    ticketBot.cooldowns.set(adminComplaintCooldownKey, adminComplaintNow);
-                    setTimeout(() => ticketBot.cooldowns.delete(adminComplaintCooldownKey), adminComplaintCooldownAmount);
+                    ticketBot.cooldowns.set(complaintCooldownKey, complaintNow);
+                    setTimeout(() => ticketBot.cooldowns.delete(complaintCooldownKey), complaintCooldownAmount);
                     
-                    // إنشاء روم تذكرة جديد
-                    const adminComplaintGuildAdminRoles = ticketBot.adminRoles.get(interaction.guild.id) || [];
-                    const adminComplaintPermissionOverwrites = [
-                        {
-                            id: interaction.guild.id,
-                            deny: ['ViewChannel'],
-                        },
-                        {
-                            id: interaction.user.id,
-                            allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'],
-                        },
+                    const complaintAdminRoles = ticketBot.adminRoles.get(interaction.guild.id) || [];
+                    const complaintPermissionOverwrites = [
+                        { id: interaction.guild.id, deny: ['ViewChannel'] },
+                        { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
                     ];
                     
-                    // إضافة رتب المشرفين
-                    adminComplaintGuildAdminRoles.forEach(roleId => {
-                        adminComplaintPermissionOverwrites.push({
+                    complaintAdminRoles.forEach(roleId => {
+                        complaintPermissionOverwrites.push({
                             id: roleId,
                             allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageMessages'],
                         });
                     });
                     
-                    const adminComplaintChannel = await interaction.guild.channels.create({
-                        name: `شكوى-إداري-${interaction.user.username}`,
-                        type: 0, // text channel
-                        parent: null, // يمكن تحديد category إذا أردت
-                        permissionOverwrites: adminComplaintPermissionOverwrites,
+                    const complaintChannel = await interaction.guild.channels.create({
+                        name: `شكوى-اداري-${interaction.user.username}`,
+                        type: 0,
+                        permissionOverwrites: complaintPermissionOverwrites,
                     });
                     
-                    const adminComplaintEmbed = createTicketEmbed(
-                        'شكوى على إداري',
-                        'هذه التذكرة مخصصة لتقديم شكاوى على الإداريين',
+                    const complaintEmbed = createTicketEmbed(
+                        'شكوى على اداري',
+                        `شكوى على اداري من ${interaction.user}`,
                         interaction.user
                     );
                     
-                    // إرسال رسالة في الروم الجديد مع أزرار الإدارة
-                    const adminComplaintManageButtons = createTicketManageButtons();
-                    
-                    try {
-                        // إرسال الصورة مع الembed في التذكرة
-                        const fs = require('fs');
-                        let ticketMessageOptions = { embeds: [adminComplaintEmbed], components: [adminComplaintManageButtons] };
-                        
-                        if (fs.existsSync('attached_assets/IMG_5570_1757012556488.png')) {
-                            const { AttachmentBuilder } = require('discord.js');
-                            const attachment = new AttachmentBuilder('attached_assets/IMG_5570_1757012556488.png', { name: 'IMG_5570_1757012556488.png' });
-                            ticketMessageOptions.files = [attachment];
-                        }
-                        
-                        await adminComplaintChannel.send(ticketMessageOptions);
-                        console.log('✅ تم إنشاء تذكرة شكوى على إداري بنجاح');
-                    } catch (sendError) {
-                        console.error('❌ خطأ في إرسال رسالة التذكرة:', sendError.message);
-                        // رسالة احتياطية بدون صورة
-                        await adminComplaintChannel.send({ embeds: [adminComplaintEmbed], components: [adminComplaintManageButtons] });
-                    }
-                    
-                    await interaction.reply({ 
-                        content: `تم إنشاء تذكرة شكوى على إداري في ${adminComplaintChannel}`, 
-                        ephemeral: true 
-                    });
+                    const complaintManageButtons = createTicketManageButtons();
+                    await complaintChannel.send({ embeds: [complaintEmbed], components: [complaintManageButtons] });
+                    await interaction.reply({ content: `تم إنشاء تذكرة الشكوى في ${complaintChannel}`, ephemeral: true });
                     break;
 
                 case 'claim_ticket':
