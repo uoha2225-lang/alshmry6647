@@ -11,6 +11,9 @@ module.exports = {
     
     // معرف القناة للتقييمات (اختياري)
     REVIEW_CHANNEL_ID: process.env.REVIEW_CHANNEL_ID || '',
+
+    // معرف كاتجوري التذاكر (اختياري)
+    TICKET_CATEGORY_ID: process.env.TICKET_CATEGORY_ID || '',
     
     // بادئة الأوامر
     PREFIX: '!'

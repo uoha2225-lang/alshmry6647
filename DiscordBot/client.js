@@ -824,6 +824,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     const adminTransferChannel = await interaction.guild.channels.create({
                         name: `النقل-الاداري-${interaction.user.username}`,
                         type: 0,
+                        parent: tokens.TICKET_CATEGORY_ID || null,
                         permissionOverwrites: adminTransferPermissionOverwrites,
                     });
                     
@@ -873,6 +874,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     const militaryTransferChannel = await interaction.guild.channels.create({
                         name: `النقل-العسكري-${interaction.user.username}`,
                         type: 0,
+                        parent: tokens.TICKET_CATEGORY_ID || null,
                         permissionOverwrites: militaryTransferPermissionOverwrites,
                     });
                     
@@ -922,6 +924,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     const inquiryChannel = await interaction.guild.channels.create({
                         name: `استفسار-${interaction.user.username}`,
                         type: 0,
+                        parent: tokens.TICKET_CATEGORY_ID || null,
                         permissionOverwrites: inquiryPermissionOverwrites,
                     });
                     
@@ -971,6 +974,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     const complaintChannel = await interaction.guild.channels.create({
                         name: `شكوى-اداري-${interaction.user.username}`,
                         type: 0,
+                        parent: tokens.TICKET_CATEGORY_ID || null,
                         permissionOverwrites: complaintPermissionOverwrites,
                     });
                     
