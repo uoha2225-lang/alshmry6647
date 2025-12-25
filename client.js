@@ -48,10 +48,70 @@ async function sendTicketLog(guild, user, type, ticketChannel) {
     }
 }
 
+// أوامر بوت التذاكر
+const ticketCommands = [
+    new SlashCommandBuilder()
+        .setName('تذكرة')
+        .setDescription('فتح نظام التذاكر مع الأزرار'),
+    new SlashCommandBuilder()
+        .setName('ticket')
+        .setDescription('Open ticket system (English)')
+];
+
+// أوامر بوت التقييمات
+const reviewCommands = [
+    new SlashCommandBuilder()
+        .setName('تقييم')
+        .setDescription('إرسال تقييم بالنجوم')
+        .addIntegerOption(option => 
+            option.setName('rating')
+                .setDescription('التقييم من 1 إلى 5')
+                .setRequired(true)
+                .setMinValue(1)
+                .setMaxValue(5)),
+    new SlashCommandBuilder()
+        .setName('review')
+        .setDescription('Send star rating (English)')
+        .addIntegerOption(option => 
+            option.setName('rating')
+                .setDescription('Rating from 1 to 5')
+                .setRequired(true)
+                .setMinValue(1)
+                .setMaxValue(5))
+];
+
+// تسجيل الأوامر
+async function registerCommands(bot, commands, token, botName) {
+    try {
+        if (token && bot.user) {
+            const rest = new REST({ version: '10' }).setToken(token);
+            console.log(`بدء تسجيل أوامر ${botName}...`);
+            await rest.put(
+                Routes.applicationCommands(bot.user.id),
+                { body: commands }
+            );
+            console.log(`✅ تم تسجيل أوامر ${botName} بنجاح`);
+        }
+    } catch (error) {
+        console.error(`خطأ في تسجيل أوامر ${botName}:`, error);
+    }
+}
+
+ticketBot.once('ready', () => {
+    console.log(`بوت التذاكر جاهز باسم ${ticketBot.user.tag}`);
+    registerCommands(ticketBot, ticketCommands, tokens.REMINDER_BOT_TOKEN, 'بوت التذاكر');
+});
+
+reviewBot.once('ready', () => {
+    console.log(`بوت التقييمات جاهز باسم ${reviewBot.user.tag}`);
+    registerCommands(reviewBot, reviewCommands, tokens.REVIEW_BOT_TOKEN, 'بوت التقييمات');
+});
+
 // معالجة أوامر بوت التذاكر
 ticketBot.on('interactionCreate', async (interaction) => {
     if (interaction.isChatInputCommand()) {
-        if (interaction.commandName === 'تذكرة' || interaction.commandName === 'ticket') {
+        const { commandName } = interaction;
+        if (commandName === 'تذكرة' || commandName === 'ticket') {
             const embed = new EmbedBuilder()
                 .setTitle('نظام التذاكر | Ticket System')
                 .setDescription('يرجى اختيار القسم المناسب لفتح تذكرة:')
@@ -70,6 +130,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
             await interaction.reply({ embeds: [embed], components: [row1, row2] });
         }
     }
+    // ... rest of interaction logic ...
 
     if (interaction.isButton()) {
         const { customId, guild, user } = interaction;
@@ -109,6 +170,23 @@ ticketBot.on('interactionCreate', async (interaction) => {
 });
 
 // معالجة بوت التقييمات
+reviewBot.on('interactionCreate', async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+    
+    const { commandName } = interaction;
+    if (commandName === 'تقييم' || commandName === 'review') {
+        const rating = interaction.options.getInteger('rating');
+        const stars = '⭐'.repeat(rating);
+        const embed = new EmbedBuilder()
+            .setTitle('تقييم جديد')
+            .setDescription(`قام ${interaction.user} بتقييمنا بـ ${rating} نجوم\n${stars}`)
+            .setColor(0xffff00)
+            .setTimestamp();
+        
+        await interaction.reply({ embeds: [embed] });
+    }
+});
+
 reviewBot.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     const rating = parseInt(message.content);
