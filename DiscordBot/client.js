@@ -211,6 +211,10 @@ ticketBot.on('interactionCreate', async interaction => {
         if (interaction.customId === 'close_ticket_reason_modal') {
             const reason = interaction.fields.getTextInputValue('close_reason_input');
             await interaction.reply({ content: `🔒 يتم إغلاق التذكرة بسبب: ${reason}` });
+            
+            // إرسال سجل إغلاق التذكرة قبل الحذف
+            await sendTicketLog(interaction.channel, interaction.user, `إغلاق التذكرة (السبب: ${reason})`);
+            
             setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
         } else if (interaction.customId === 'add_member_modal') {
             const memberId = interaction.fields.getTextInputValue('member_id_input').replace(/[<@!>]/g, '');
@@ -282,6 +286,10 @@ ticketBot.on('interactionCreate', async interaction => {
             for (const rId of adminRoleIds) await channel.permissionOverwrites.edit(rId, { ViewChannel: true, SendMessages: true });
 
             await channel.send({ content: `<@${interaction.user.id}> | فريق الدعم`, embeds: [createTicketEmbed(typeNames[type], counter, interaction.user, interaction.guild)], components: [createTicketManageButtons()] });
+            
+            // إرسال سجل فتح التذكرة
+            await sendTicketLog(channel, interaction.user, `فتح تذكرة (${typeNames[type]})`);
+            
             return interaction.editReply(`تم فتح تذكرتك: ${channel}`);
         }
 
