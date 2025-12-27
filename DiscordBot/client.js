@@ -41,14 +41,16 @@ const sendTicketLog = async (ticketChannel, closedBy, action) => {
         const logChannel = ticketChannel.guild.channels.cache.get(logChannelId);
         if (!logChannel) return; 
         
-        const messages = await ticketChannel.messages.fetch({ limit: 50 });
+        const messages = await ticketChannel.messages.fetch({ limit: 100 });
         const sortedMessages = messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
         
         let conversation = '';
         sortedMessages.forEach(msg => {
-            if (msg.author.bot && msg.embeds.length > 0) return;
+            if (msg.author.bot && msg.embeds.length > 0 && !msg.content) return;
             const timestamp = new Date(msg.createdTimestamp).toLocaleString('ar-SA');
-            conversation += `[${timestamp}] ${msg.author.username}: ${msg.content || '[مرفق/embed]'}\n`;
+            const author = msg.author.bot ? `[BOT] ${msg.author.username}` : msg.author.username;
+            const content = msg.content || (msg.embeds.length > 0 ? '[Embed Content]' : '[Attachment]');
+            conversation += `[${timestamp}] ${author}: ${content}\n`;
         });
         
         if (conversation.length > 4000) {
@@ -330,6 +332,11 @@ ticketBot.on('interactionCreate', async interaction => {
         const { commandName: cmd } = interaction;
         if (cmd === 'تذكرة' || cmd === 'ticket') {
             return interaction.reply({ embeds: [createTicketMainEmbed()], components: [createTicketMainButton()] });
+        }
+        if (cmd === 'سجلات_التذاكر') {
+            const channel = interaction.options.getChannel('channel');
+            ticketBot.logChannels.set(interaction.guildId, channel.id);
+            return interaction.reply({ content: `✅ تم تحديد روم السجلات: ${channel}`, ephemeral: true });
         }
     }
 });
