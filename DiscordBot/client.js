@@ -525,7 +525,8 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     const expirationTime = ticketBot.cooldowns.get(cooldownKey);
                     if (Date.now() < expirationTime) {
                         const timeLeft = ((expirationTime - Date.now()) / 1000).toFixed(1);
-                        return interaction.reply({ content: `يرجى الانتظار ${timeLeft} ثانية قبل فتح تذكرة أخرى.`, ephemeral: true });
+                        await interaction.reply({ content: `يرجى الانتظار ${timeLeft} ثانية قبل فتح تذكرة أخرى.`, ephemeral: true });
+                        return;
                     }
                 }
 
@@ -551,7 +552,7 @@ ticketBot.on('interactionCreate', async (interaction) => {
                 const embed = createTicketEmbed(ticketTypeName, `مرحباً بك <@${interaction.user.id}>\nسيقوم فريق الدعم بالرد عليك قريباً.`, interaction.user);
                 const buttons = createTicketManageButtons();
 
-                const message = await ticketChannel.send({
+                await ticketChannel.send({
                     content: `<@${interaction.user.id}> | فريق الدعم`,
                     embeds: [embed],
                     components: [buttons]
@@ -577,8 +578,13 @@ ticketBot.on('interactionCreate', async (interaction) => {
 
             } catch (error) {
                 console.error('خطأ في إنشاء التذكرة:', error);
-                await interaction.editReply({ content: 'حدث خطأ أثناء محاولة فتح التذكرة.' });
+                if (interaction.deferred) {
+                    await interaction.editReply({ content: 'حدث خطأ أثناء محاولة فتح التذكرة.' });
+                } else {
+                    await interaction.reply({ content: 'حدث خطأ أثناء محاولة فتح التذكرة.', ephemeral: true });
+                }
             }
+            return;
         }
     }
 
