@@ -290,7 +290,7 @@ ticketBot.on('interactionCreate', async interaction => {
             }
             if (opt === 'admin_add_member') {
                 const m = new ModalBuilder().setCustomId('add_member_modal').setTitle('إضافة عضو');
-                m.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('member_id_input').setLabel('المعرف').setStyle(TextInputStyle.Short).setRequired(true)));
+                m.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('member_id_input').setLabel('معرف العضو (ID) أو منشن').setStyle(TextInputStyle.Short).setRequired(true)));
                 return interaction.showModal(m);
             }
             if (opt === 'admin_remind_member') {
