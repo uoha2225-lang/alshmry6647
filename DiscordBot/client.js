@@ -90,7 +90,11 @@ const createTicketOptionsEmbed = () => {
 };
 
 const createTicketEmbed = (ticketType, ticketNumber, user, guild) => {
-    const adminRoleIds = ticketBot.adminRoles.get(guild.id) || [];
+    const adminRoleIds = [
+        process.env.TICKET_ADMIN_ROLE_ID_1,
+        process.env.TICKET_ADMIN_ROLE_ID_2
+    ].filter(id => id && id.length > 0);
+
     const adminRolesMention = adminRoleIds.length > 0 
         ? adminRoleIds.map(id => `<@&${id}>`).join(' ') 
         : 'مسؤول عن النقل';
@@ -166,10 +170,6 @@ const ticketCommands = [
     new SlashCommandBuilder().setName('تذكرة').setDescription('فتح نظام التذاكر'),
     new SlashCommandBuilder().setName('ticket').setDescription('Open the ticket system'),
     new SlashCommandBuilder().setName('help').setDescription('عرض قائمة الأوامر'),
-    new SlashCommandBuilder().setName('مشرفين_التذاكر').setDescription('إدارة رتب مشرفين التذاكر')
-        .addStringOption(opt => opt.setName('action').setDescription('إضافة أو إزالة').setRequired(true).addChoices({ name: 'إضافة', value: 'add' }, { name: 'إزالة', value: 'remove' }, { name: 'عرض القائمة', value: 'list' }))
-        .addRoleOption(opt => opt.setName('role').setDescription('الرتبة الأولى'))
-        .addRoleOption(opt => opt.setName('role2').setDescription('الرتبة الثانية')),
     new SlashCommandBuilder().setName('سجلات_التذاكر').setDescription('تحديد روم سجلات التذاكر').addChannelOption(opt => opt.setName('channel').setDescription('الروم').setRequired(true))
 ];
 
@@ -228,8 +228,12 @@ ticketBot.on('interactionCreate', async interaction => {
             return interaction.reply({ embeds: [createTicketOptionsEmbed()], components: createTicketOptionsButtons(), ephemeral: true });
         }
         
-        const adminRoles = ticketBot.adminRoles.get(interaction.guildId) || [];
-        const isAdmin = interaction.member.roles.cache.some(r => adminRoles.includes(r.id)) || interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+        const adminRoleIds = [
+            process.env.TICKET_ADMIN_ROLE_ID_1,
+            process.env.TICKET_ADMIN_ROLE_ID_2
+        ].filter(id => id && id.length > 0);
+
+        const isAdmin = interaction.member.roles.cache.some(r => adminRoleIds.includes(r.id)) || interaction.member.permissions.has(PermissionFlagsBits.Administrator);
 
         if (interaction.customId === 'claim_ticket') {
             if (!isAdmin) return interaction.reply({ content: '❌ للإدارة فقط.', ephemeral: true });
@@ -270,8 +274,12 @@ ticketBot.on('interactionCreate', async interaction => {
                 ]
             });
             
-            const adminRoles = ticketBot.adminRoles.get(interaction.guildId) || [];
-            for (const rId of adminRoles) await channel.permissionOverwrites.edit(rId, { ViewChannel: true, SendMessages: true });
+            const adminRoleIds = [
+                process.env.TICKET_ADMIN_ROLE_ID_1,
+                process.env.TICKET_ADMIN_ROLE_ID_2
+            ].filter(id => id && id.length > 0);
+
+            for (const rId of adminRoleIds) await channel.permissionOverwrites.edit(rId, { ViewChannel: true, SendMessages: true });
 
             await channel.send({ content: `<@${interaction.user.id}> | فريق الدعم`, embeds: [createTicketEmbed(typeNames[type], counter, interaction.user, interaction.guild)], components: [createTicketManageButtons()] });
             return interaction.editReply(`تم فتح تذكرتك: ${channel}`);
@@ -314,45 +322,6 @@ ticketBot.on('interactionCreate', async interaction => {
         const { commandName: cmd } = interaction;
         if (cmd === 'تذكرة' || cmd === 'ticket') {
             return interaction.reply({ embeds: [createTicketMainEmbed()], components: [createTicketMainButton()] });
-        }
-        if (cmd === 'مشرفين_التذاكر') {
-            const act = interaction.options.getString('action');
-            const role1 = interaction.options.getRole('role');
-            const role2 = interaction.options.getRole('role2');
-            let roles = ticketBot.adminRoles.get(interaction.guildId) || [];
-
-            if (act === 'list') {
-                return interaction.reply({ content: `👥 قائمة مشرفين التذاكر الحالية: ${roles.map(id => `<@&${id}>`).join(', ') || 'خالية'}`, ephemeral: true });
-            }
-
-            if (act === 'add') {
-                if (!role1 && !role2) return interaction.reply({ content: '❌ يرجى تحديد رتبة واحدة على الأقل.', ephemeral: true });
-                
-                const rolesToAdd = [role1, role2].filter(r => r !== null);
-                let addedCount = 0;
-
-                for (const r of rolesToAdd) {
-                    if (roles.length >= 5) break;
-                    if (!roles.includes(r.id)) {
-                        roles.push(r.id);
-                        addedCount++;
-                    }
-                }
-
-                ticketBot.adminRoles.set(interaction.guildId, roles);
-                return interaction.reply({ content: `✅ تم إضافة ${addedCount} رتبة لمشرفي التذاكر. العدد الإجمالي الحالي: ${roles.length}/5`, ephemeral: true });
-            } 
-            
-            if (act === 'remove') {
-                if (!role1 && !role2) return interaction.reply({ content: '❌ يرجى تحديد رتبة واحدة على الأقل لإزالتها.', ephemeral: true });
-                
-                const rolesToRemove = [role1, role2].filter(r => r !== null).map(r => r.id);
-                const initialCount = roles.length;
-                roles = roles.filter(id => !rolesToRemove.includes(id));
-                
-                ticketBot.adminRoles.set(interaction.guildId, roles);
-                return interaction.reply({ content: `✅ تم إزالة ${initialCount - roles.length} رتبة. العدد المتبقي: ${roles.length}/5`, ephemeral: true });
-            }
         }
     }
 });
