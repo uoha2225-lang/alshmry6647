@@ -84,16 +84,12 @@ const sendTicketLog = async (ticketChannel, closedBy, action) => {
 // وظائف مساعدة للتذاكر
 const createTicketMainEmbed = () => {
     return new EmbedBuilder()
-        .setTitle('افتح تذكرتك واختار مايناسبك')
-        .setDescription('فتح تذكرة من هنا')
         .setImage('https://replit.com/attached_assets/IMG_223223424_1766852684390.png')
-        .setColor(0x0099ff)
-        .setTimestamp();
+        .setColor(0x0099ff);
 };
 
 const createTicketOptionsEmbed = () => {
     return new EmbedBuilder()
-        .setTitle('فتح تذكرة من هنا')
         .setColor(0x0099ff);
 };
 
