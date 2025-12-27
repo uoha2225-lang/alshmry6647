@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Collection, SlashCommandBuilder, REST, Routes, StringSelectMenuBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Collection, SlashCommandBuilder, REST, Routes, StringSelectMenuBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const tokens = require('./tokens.js');
 
 // إعداد العميل للبوتات
@@ -544,12 +544,21 @@ ticketBot.on('interactionCreate', async (interaction) => {
                 const channelName = `${selectedType.split('_').pop()}-${interaction.user.username}`;
                 const ticketChannel = await interaction.guild.channels.create({
                     name: channelName,
-                    type: 0, // GuildText
+                    type: ChannelType.GuildText,
                     parent: category || null,
                     permissionOverwrites: [
-                        { id: interaction.guild.id, deny: [0x400] }, // ViewChannel
-                        { id: interaction.user.id, allow: [0x400, 0x800, 0x10000] }, // View, Send, ReadHistory
-                        { id: ticketBot.user.id, allow: [0x400, 0x800, 0x10000, 0x10] } // ManageChannels
+                        { 
+                            id: interaction.guild.id, 
+                            deny: [PermissionFlagsBits.ViewChannel] 
+                        },
+                        { 
+                            id: interaction.user.id, 
+                            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] 
+                        },
+                        { 
+                            id: ticketBot.user.id, 
+                            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] 
+                        }
                     ]
                 });
 
