@@ -15,12 +15,12 @@ args = "Discord Bots Running"
 name = "Discord Bots Running"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd DiscordBot && node index.js"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node DiscordBot/index.js"
 
 [agent]
 expertMode = true

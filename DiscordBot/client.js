@@ -110,7 +110,6 @@ const createTicketEmbed = (ticketType, ticketNumber, user, guild) => {
             name: `👤 | مالك التذكرة: ${user.username}`, 
             iconURL: user.displayAvatarURL({ dynamic: true }) 
         })
-        .setTitle('🎫 تفاصيل التذكرة الجديدة')
         .addFields(
             { name: '🛡️ | مشرفي التذاكر', value: adminRolesMention, inline: true },
             { name: '📅 | تاريخ التذكرة', value: new Date().toLocaleString('en-US', { 
@@ -288,19 +287,14 @@ const createTicketManageButtons = () => {
         .addComponents(
             new ButtonBuilder()
                 .setCustomId('claim_ticket')
-                .setLabel('استلام التذكرة')
+                .setLabel('استلام')
                 .setStyle(ButtonStyle.Primary)
-                .setEmoji('👤'),
-            new ButtonBuilder()
-                .setCustomId('close_ticket')
-                .setLabel('قفل التذكرة')
-                .setStyle(ButtonStyle.Danger)
-                .setEmoji('🔒'),
+                .setEmoji('💼'),
             new ButtonBuilder()
                 .setCustomId('ticket_admin_options')
                 .setLabel('خيارات التذكرة')
                 .setStyle(ButtonStyle.Secondary)
-                .setEmoji('🗃️')
+                .setEmoji('⚙️')
         );
     return row;
 };
@@ -677,7 +671,21 @@ ticketBot.on('interactionCreate', async (interaction) => {
         await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
         return;
     }
-            const selectedType = interaction.values[0];
+
+    if (interaction.isButton() && interaction.customId === 'claim_ticket') {
+        const adminRoleIds = ticketBot.adminRoles.get(interaction.guildId) || [];
+        const hasAdminRole = interaction.member.roles.cache.some(role => adminRoleIds.includes(role.id)) || 
+                            interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+        
+        if (!hasAdminRole) {
+            return interaction.reply({ content: '❌ هذا الخيار مخصص للإدارة فقط.', ephemeral: true });
+        }
+
+        await interaction.reply({ content: `✅ تم استلام التذكرة بواسطة ${interaction.user}.` });
+        return;
+    }
+
+    if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_type_select') {
             
             // خريطة لأسماء الأنواع باللغة العربية للرسائل
             const typeNames = {
@@ -837,7 +845,6 @@ ticketBot.on('interactionCreate', async (interaction) => {
                     const role = interaction.options.getRole('role');
                     const guildId = interaction.guild.id;
                     
-                    // الحصول على قائمة الرتب المحفوظة للسيرفر
                     let adminRoles = ticketBot.adminRoles.get(guildId) || [];
                     
                     if (action === 'add') {
@@ -846,10 +853,13 @@ ticketBot.on('interactionCreate', async (interaction) => {
                             break;
                         }
                         
+                        if (adminRoles.length >= 5) {
+                            await interaction.reply({ content: '❌ لا يمكنك إضافة أكثر من 5 رتب لمشرفي التذاكر.', ephemeral: true });
+                            break;
+                        }
+
                         if (adminRoles.includes(role.id)) {
-                            try {
-                                await interaction.reply({ content: `الرتبة ${role.name} موجودة بالفعل في قائمة مشرفين التذاكر`, ephemeral: true });
-                            } catch (e) { console.log('خطأ في الرد'); }
+                            await interaction.reply({ content: `الرتبة ${role.name} موجودة بالفعل في قائمة مشرفين التذاكر`, ephemeral: true });
                             break;
                         }
                         
@@ -858,12 +868,10 @@ ticketBot.on('interactionCreate', async (interaction) => {
                         
                         const addEmbed = new EmbedBuilder()
                             .setTitle('✅ تم إضافة رتبة مشرف تذاكر')
-                            .setDescription(`تم إضافة الرتبة ${role} إلى قائمة مشرفين التذاكر`)
+                            .setDescription(`تم إضافة الرتبة ${role} إلى قائمة مشرفين التذاكر (${adminRoles.length}/5)`)
                             .setColor(0x00AE86);
                         
-                        try {
-                            await interaction.reply({ embeds: [addEmbed], ephemeral: true });
-                        } catch (e) { console.log('خطأ في الرد'); }
+                        await interaction.reply({ embeds: [addEmbed], ephemeral: true });
                         
                     } else if (action === 'remove') {
                         if (!role) {
