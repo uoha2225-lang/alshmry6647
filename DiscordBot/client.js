@@ -326,9 +326,11 @@ ticketBot.on('interactionCreate', async interaction => {
             if (act === 'add') {
                 if (!role) return interaction.reply({ content: '❌ يرجى تحديد الرتبة.', ephemeral: true });
                 if (roles.length >= 5) return interaction.reply({ content: '❌ الحد الأقصى لمشرفي التذاكر هو 5 رتب فقط.', ephemeral: true });
-                if (!roles.includes(role.id)) roles.push(role.id);
-                ticketBot.adminRoles.set(interaction.guildId, roles);
-                return interaction.reply({ content: `✅ تم إضافة الرتبة ${role} لمشرفي التذاكر. العدد الحالي: ${roles.length}/5`, ephemeral: true });
+                if (!roles.includes(role.id)) {
+                    roles.push(role.id);
+                    ticketBot.adminRoles.set(interaction.guildId, roles);
+                }
+                return interaction.reply({ content: `✅ تم إضافة الرتبة ${role} لمشرفي التذاكر. يمكنك إضافة حتى 5 رتب.`, ephemeral: true });
             } 
             
             if (act === 'remove') {
@@ -336,7 +338,7 @@ ticketBot.on('interactionCreate', async interaction => {
                 if (!roles.includes(role.id)) return interaction.reply({ content: '❌ هذه الرتبة ليست من ضمن المشرفين.', ephemeral: true });
                 roles = roles.filter(id => id !== role.id);
                 ticketBot.adminRoles.set(interaction.guildId, roles);
-                return interaction.reply({ content: `✅ تم إزالة الرتبة ${role} من مشرفي التذاكر. العدد الحالي: ${roles.length}/5`, ephemeral: true });
+                return interaction.reply({ content: `✅ تم إزالة الرتبة ${role} من مشرفي التذاكر.`, ephemeral: true });
             }
         }
     }
