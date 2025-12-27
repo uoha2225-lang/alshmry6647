@@ -256,9 +256,11 @@ ticketBot.on('interactionCreate', async interaction => {
             let counter = (ticketBot.ticketCounters.get(interaction.guildId) || 0) + 1;
             ticketBot.ticketCounters.set(interaction.guildId, counter);
 
+            const categoryId = process.env.TICKET_CATEGORY_ID || tokens.TICKET_CATEGORY_ID;
             const channel = await interaction.guild.channels.create({
                 name: `🎫・${counter}`,
                 type: ChannelType.GuildText,
+                parent: categoryId || null,
                 topic: `Owner: ${interaction.user.id}`,
                 permissionOverwrites: [
                     { id: interaction.guild.id, deny: [PermissionFlagsBits.ViewChannel] },
