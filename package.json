@@ -1,7 +1,7 @@
 {
   "name": "workspace",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "DiscordBot/index.js",
   "dependencies": {
     "discord-api-types": "^0.38.22",
     "discord.js": "^14.25.1",
@@ -17,8 +17,8 @@
     "ws": "^8.18.3"
   },
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js",
+    "start": "node DiscordBot/index.js",
+    "dev": "node DiscordBot/index.js",
     "build": "npm install",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
