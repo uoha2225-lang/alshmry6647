@@ -44,6 +44,12 @@ test('resolveTicketRoute returns neutral fallback text when no roles are configu
     assert.equal(route.notificationTarget, DEFAULT_SUPPORT_LABEL);
 });
 
+test('resolveTicketRoute exposes the configured display name for every ticket type', () => {
+    assert.equal(resolveTicketRoute('ticket_buy_product', {}).displayName, 'شراء منتج من المتجر');
+    assert.equal(resolveTicketRoute('ticket_inquiry', {}).displayName, 'استفسار');
+    assert.equal(resolveTicketRoute('ticket_tech_support', {}).displayName, 'طلب دعم فني');
+});
+
 test('topic helpers preserve owner and ticket type for new channels', () => {
     const topic = buildTicketChannelTopic('123456', 'ticket_inquiry');
     const parsed = parseTicketChannelTopic(topic);
@@ -65,6 +71,19 @@ test('resolveTicketRouteFromTopic supports legacy owner-only topics', () => {
     assert.equal(route.ticketType, null);
     assert.deepEqual(route.roleIds, ['500']);
     assert.equal(route.mentions, '<@&500>');
+});
+
+test('resolveTicketRouteFromTopic restores type-specific roles for typed ticket topics', () => {
+    const route = resolveTicketRouteFromTopic('Owner: 123456 | Type: tech_support', {
+        TICKET_TECH_SUPPORT_ROLE_IDS: '700,701',
+        TICKET_ADMIN_ROLE_ID_1: '500',
+    });
+
+    assert.equal(route.ownerId, '123456');
+    assert.equal(route.ticketType, 'ticket_tech_support');
+    assert.equal(route.displayName, 'طلب دعم فني');
+    assert.deepEqual(route.roleIds, ['700', '701']);
+    assert.equal(route.notificationTarget, '<@&700> <@&701>');
 });
 
 test('hasTicketAdminAccess honors type-specific roles and administrator override', () => {
