@@ -16,5 +16,17 @@ services:
         sync: false
       - key: ACTIVITY_BOT_TOKEN
         sync: false
+      - key: TICKET_CATEGORY_ID
+        sync: false
+      - key: TICKET_ADMIN_ROLE_ID_1
+        sync: false
+      - key: TICKET_ADMIN_ROLE_ID_2
+        sync: false
+      - key: TICKET_BUY_PRODUCT_ROLE_IDS
+        sync: false
+      - key: TICKET_INQUIRY_ROLE_IDS
+        sync: false
+      - key: TICKET_TECH_SUPPORT_ROLE_IDS
+        sync: false
     healthCheckPath: /
     autoDeploy: true

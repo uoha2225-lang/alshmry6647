@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const { ticketBot, reviewBot } = require("./client.js");
 const { activityBot } = require("./activity-bot.js");
 const tokens = require("./tokens.js");
@@ -168,7 +170,11 @@ process.on("unhandledRejection", (reason, promise) => {
 
 process.on("uncaughtException", (error) => {
     console.error("Uncaught Exception:", error);
-    process.exit(1);
+    // لا نوقف البوتات بسبب أخطاء الشبكة المؤقتة
+    if (error.message && error.message.includes('handshake')) {
+        console.log("🔄 محاولة إعادة الاتصال بـ Discord...");
+        return; // تجاهل أخطاء WebSocket المؤقتة
+    }
 });
 
 // بدء تشغيل البوتات

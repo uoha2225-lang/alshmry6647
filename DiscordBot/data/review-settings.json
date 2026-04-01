@@ -1,0 +1,8 @@
+{
+  "g1": {
+    "anonymize": true,
+    "notifyUser": true,
+    "storeOriginalText": true,
+    "minConfidence": 0.3
+  }
+}
